@@ -8,6 +8,11 @@ import { assemblePrompt } from "./assemblePrompt"
  * @param input - System input.
  */
 export function runSystem(input: SystemInput): SystemResult {
+    // 0. Internal Guard: Ensure data integrity within domain layer
+    if (!input.message || typeof input.complexity !== "number") {
+        throw new Error("Domain validation failed: Invalid SystemInput structure")
+    }
+
     // 1. Determine model
     const selectedModel = routeModel(input.complexity)
 
