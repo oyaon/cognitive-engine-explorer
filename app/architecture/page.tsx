@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { routeModel } from "@/lib/system/routeModel";
-import { calculateCost } from "@/lib/system/calculateCost";
 
 const layers = [
   {
@@ -160,6 +158,16 @@ const layers = [
   },
 ];
 
+type ExecutionRecord = {
+  id: string;
+  message: string;
+  selectedModel: "fast" | "balanced";
+  tokensUsed: number;
+  estimatedCost: number;
+  retrievalUsed: boolean;
+  timestamp: number;
+};
+
 export default function ArchitecturePage() {
   const [activeLayer, setActiveLayer] = useState<string | null>(null);
   const [activeNode, setActiveNode] = useState<string | null>(null);
@@ -176,9 +184,66 @@ export default function ArchitecturePage() {
   const [complexity, setComplexity] = useState(0.45);
   const [retrievalEnabled, setRetrievalEnabled] = useState(true);
 
-  // Sync with domain logic
-  const selectedModelTier = routeModel(complexity);
-  const { estimatedCost } = calculateCost(selectedModelTier, "simulation_placeholder"); // Using a placeholder for stable length
+  const [inputMessage, setInputMessage] = useState("");
+  const [executionResult, setExecutionResult] = useState<{
+    response: string;
+    metadata: {
+      selectedModel: "fast" | "balanced";
+      estimatedCost: number;
+      tokensUsed: number;
+      retrievalUsed: boolean;
+      reasoning: string[];
+    };
+  } | null>(null);
+
+  const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [executionHistory, setExecutionHistory] = useState<ExecutionRecord[]>([]);
+
+  async function handleRun() {
+    if (!inputMessage.trim()) return;
+
+    setIsRunning(true);
+    setError(null);
+    setExecutionResult(null);
+
+    try {
+      const res = await fetch("/api/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: inputMessage,
+          complexity,
+          retrievalEnabled,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Execution failed");
+      } else {
+        setExecutionResult(data);
+
+        const record: ExecutionRecord = {
+          id: crypto.randomUUID(),
+          message: inputMessage,
+          selectedModel: data.metadata.selectedModel,
+          tokensUsed: data.metadata.tokensUsed,
+          estimatedCost: data.metadata.estimatedCost,
+          retrievalUsed: data.metadata.retrievalUsed,
+          timestamp: Date.now(),
+        };
+
+        setExecutionHistory((prev) => [record, ...prev]);
+      }
+    } catch {
+      setError("Network error");
+    }
+
+    setIsRunning(false);
+  }
 
   const toggleLayer = (id: string) => {
     setActiveLayer(activeLayer === id ? null : id);
@@ -227,9 +292,9 @@ export default function ArchitecturePage() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                     {layer.description}
                   </p>
-                  {layer.id === "execution" && (
+                  {layer.id === "execution" && executionResult && (
                     <p className="text-xs text-gray-400 mt-2">
-                      Active Tier: {selectedModelTier}
+                      Active Tier: {executionResult.metadata.selectedModel}
                     </p>
                   )}
 
@@ -370,15 +435,118 @@ export default function ArchitecturePage() {
                 </label>
               </div>
 
-              <div className="pt-4 space-y-1">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Selected Model Tier: {selectedModelTier}
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Estimated Cost: ${estimatedCost.toFixed(6)}
-                </p>
+              <div className="space-y-3 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                <input
+                  type="text"
+                  placeholder="Ask the system..."
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  className="w-full px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-gray-400 transition-all font-sans"
+                  onKeyDown={(e) => e.key === "Enter" && handleRun()}
+                />
+                <button
+                  onClick={handleRun}
+                  disabled={isRunning || !inputMessage.trim()}
+                  className="w-full py-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-medium hover:opacity-90 disabled:opacity-30 transition-all"
+                >
+                  {isRunning ? "Running..." : "Run System"}
+                </button>
               </div>
+
+              {error && (
+                <div className="pt-2">
+                  <p className="text-xs text-red-500 font-medium">
+                    {error}
+                  </p>
+                </div>
+              )}
+
+              {executionResult && (
+                <div className="pt-6 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Model</p>
+                      <p className="text-xs font-mono text-gray-600 dark:text-gray-300 capitalize">{executionResult.metadata.selectedModel}</p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Cost</p>
+                      <p className="text-xs font-mono text-gray-600 dark:text-gray-300">
+                        ${executionResult.metadata.estimatedCost.toFixed(6)}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Tokens</p>
+                      <p className="text-xs font-mono text-gray-600 dark:text-gray-300">{executionResult.metadata.tokensUsed}</p>
+                    </div>
+                    <div className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Retrieval</p>
+                      <p className="text-xs font-mono text-gray-600 dark:text-gray-300">{executionResult.metadata.retrievalUsed ? "Enabled" : "Disabled"}</p>
+                    </div>
+                  </div>
+
+                  {executionResult.metadata.reasoning.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-2">Decision Trace</p>
+                      <ul className="space-y-1.5 text-sm text-zinc-500 dark:text-zinc-400 list-disc list-inside">
+                        {executionResult.metadata.reasoning.map((item, index) => (
+                          <li key={index} className="leading-relaxed">{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50">
+                    <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-2">Response</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed italic">
+                      "{executionResult.response}"
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
+          </div>
+          <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-sm font-semibold">Execution History</h3>
+              {executionHistory.length > 0 && (
+                <button
+                  onClick={() => setExecutionHistory([])}
+                  className="text-xs text-gray-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                >
+                  Clear History
+                </button>
+              )}
+            </div>
+
+            {executionHistory.length === 0 ? (
+              <p className="text-xs text-gray-400 italic">No previous executions in this session.</p>
+            ) : (
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {executionHistory.map((record) => (
+                  <div key={record.id} className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white/30 dark:bg-gray-900/30 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-[10px] font-bold text-gray-500 uppercase tracking-tight">
+                          {record.selectedModel}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-zinc-50 dark:bg-zinc-800/50 text-[10px] font-medium text-gray-400">
+                          {record.tokensUsed} tokens
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-zinc-50 dark:bg-zinc-800/50 text-[10px] font-medium text-gray-400">
+                          ${record.estimatedCost.toFixed(5)}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-gray-400 font-mono">
+                        {new Date(record.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 font-sans">
+                      "{record.message.length > 40 ? record.message.substring(0, 40) + "..." : record.message}"
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </aside>
       </main>

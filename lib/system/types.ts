@@ -11,6 +11,7 @@ export type ExecutionMetadata = {
     estimatedCost: number
     tokensUsed: number
     retrievalUsed: boolean
+    reasoning: string[]
 }
 
 export type SystemResult = {
