@@ -29,10 +29,25 @@ The system segregates policy evaluation from constraint processing. The policy e
 
 ## Deterministic Audit Enforcement
 
-The system employs `policyAudit.ts` as a strict verification layer. Integrated directly into CI, this script executes a sequence of checks testing escalation properties and boundary resolution. It is designed to hard-fail on invariant violations via exit code preservation. This mandates high determinism and enforces a strict deterministic output discipline.
+The system employs `policyAudit.ts` as a strict verification layer. Integrated directly into CI, this script executes a sequence of checks testing escalation properties and boundary resolution. It is designed to hard-fail on invariant violations via exit-code enforcement. This mandates high determinism and enforces a strict deterministic output discipline, proven by byte-identical verification across runs. A successful run will strictly output a `FINAL STATUS: PASS`.
 
 ```bash
 npx tsx lib/system/_audit_/policyAudit.ts
+```
+
+## API Contract
+
+The system exposes the following API contract:
+
+```json
+{
+  "message": string,
+  "complexity": number,
+  "retrievalEnabled": boolean,
+  "strategy": optional,
+  "compare": optional,
+  "budgetLimit": optional
+}
 ```
 
 ## Formal Structural Guarantees
