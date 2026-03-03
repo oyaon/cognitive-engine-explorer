@@ -13,17 +13,17 @@ export type SystemInput = {
 }
 
 export type ExecutionMetadata = {
-    selectedModel: ModelTier
-    estimatedCost: number
-    tokensUsed: number
+    policyDecision: ModelTier
+    projectedCost: number
+    tokenEstimate: number
     retrievalUsed: boolean
     reasoning: string[]
-    constraintOutcome?: "unchanged" | "downgraded" | "violated"
-    originalModel?: ModelTier
-    finalModel?: ModelTier
+    constraintState?: "compliant" | "degraded" | "breached"
+    preConstraintModel?: ModelTier
+    resolvedModel?: ModelTier
     budgetLimit?: number
-    costPressureRatio?: number
-    budgetGap?: number
+    budgetStress?: number
+    budgetDeficit?: number
 }
 
 export type SystemResult = {

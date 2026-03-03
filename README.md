@@ -1,43 +1,69 @@
 # Cognitive Engine Explorer
 
-A high-fidelity inspection tool for deconstructing layered AI orchestration systems. This project provides a visual and interactive environment to explore how complex AI request lifecycles are managed across multiple architectural layers.
+The project functions as a deterministic policy arbitration engine and constraint-aware resolution system. It implements a boundary-derivable decision framework, ensuring mathematically predictable operations decoupled from external variance. Functionality is verified entirely by a CI-enforced invariant model.
 
-## 🏗️ Architecture: The Cognitive Stack
+## Core Architectural Properties
 
-The system is organized into a vertical stack of six distinct layers, each with a specific responsibility in the request pipeline:
+- Determinism: Guaranteed synchronous resolution with no async execution or randomness.
+- Escalation Monotonicity: Model tier progression is strictly monotonic with increasing complexity.
+- Constraint Transition Coherence: State changes under budget boundaries resolve predictably.
+- Boundary Derivation Precision: Exact identification of behavioral thresholds and collapse complexities.
+- Invariant Enforcement via CI: Mathematical validation of constraints blocks structural drift.
+- Strict Domain Isolation: Pure execution environments decoupled from interface artifacts.
 
-1.  **Interface Layer**: Entry point for API requests and user interaction state.
-2.  **Orchestration Layer**: The "brain" of the system, coordinating data flow between layers.
-3.  **Cognitive Control**: Semantic analysis and adaptive routing decisions.
-4.  **Memory & Retrieval**: Vector similarity search and knowledge ingestion.
-5.  **Execution Layer**: Model invocation (LLM) and deterministic cost computation.
-6.  **Observability & Evolution**: Logging, metric tracking, and system telemetry.
+## Architecture Overview
 
-## 🚀 Getting Started
+The resolution pipeline operates under strict separation of concerns, executing through the following sequentially isolated stages:
 
-### Prerequisites
-- Node.js 18+ 
-- npm / yarn / pnpm
+```text
+SystemInput
+  → policyEngine (policyDecision)
+  → constraintEngine (resolvedModel, constraintState)
+  → comparePolicies (multi-strategy analysis)
+  → boundaryAnalysisEngine
+  → boundaryDerivationEngine
+  → invariantValidationEngine (audit layer)
+```
 
-### Installation
+The system segregates policy evaluation from constraint processing. The policy engine dictates cost paths without considering budget parameters, producing a `preConstraintModel`, `projectedCost`, and `tokenEstimate`. The constraint engine acts subsequently on those outputs to establish the `resolvedModel`, `constraintState`, `budgetDeficit`, and `budgetStress`. The boundary engines then run analysis to determine the `escalationThreshold`, `divergencePoint`, and `collapseComplexity`.
+
+## Deterministic Audit Enforcement
+
+The system employs `policyAudit.ts` as a strict verification layer. Integrated directly into CI, this script executes a sequence of checks testing escalation properties and boundary resolution. It is designed to hard-fail on invariant violations via exit code preservation. This mandates high determinism and enforces a strict deterministic output discipline.
+
+```bash
+npx tsx lib/system/_audit_/policyAudit.ts
+```
+
+## Formal Structural Guarantees
+
+See: [docs/invariant-guarantees.md](docs/invariant-guarantees.md)
+
+
+## Usage
+
+**Installation**
 ```bash
 npm install
+```
+
+**Run Deterministic Audit**
+```bash
+npx tsx lib/system/_audit_/policyAudit.ts
+```
+
+**Development Server**
+```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the landing page, then navigate to `/architecture` to launch the explorer.
+## System Rationale
 
-## 🛠️ Tech Stack
-- **Framework**: [Next.js 16 (App Router)](https://nextjs.org)
-- **Styling**: [Tailwind CSS 4](https://tailwindcss.com)
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **Language**: TypeScript
+The system models deterministic arbitration under constraints. It formalizes decision boundaries. It enforces invariants programmatically.
 
-## 🛡️ Design Philosophy
-The explorer is built with **Architectural Discipline** in mind:
-- **Deterministic Domain**: Core logic is side-effect free and isolated in `@/lib/system`.
-- **Validation Boundaries**: Strict API input validation.
-- **Visual Clarity**: High-fidelity UI that reflects the underlying system state.
+## Roadmap
 
----
-Created by [oyaon](https://github.com/oyaon).
+- Visualization layer
+- Policy expansion
+- Extended invariant modeling
+- Economic modeling refinement

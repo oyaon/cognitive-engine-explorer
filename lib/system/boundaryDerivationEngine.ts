@@ -1,5 +1,5 @@
 import { PolicyStrategy, ModelTier } from "./types"
-import { calculateCost } from "./calculateCost"
+import { calculateCost, estimateTokens } from "./calculateCost"
 import {
     evaluatePolicyThreshold,
     evaluatePolicyCostAware,
@@ -17,13 +17,13 @@ export interface StrategyBoundaryDerivation {
         lower: number
         upper: number
     }
-    policyEscalationComplexity?: number
+    escalationThreshold?: number
 }
 
 export interface GlobalBoundaryDerivation {
     minimumBudgetForNoViolation: number
-    collapseOccursBelowBudget?: number
-    divergenceComplexity?: number
+    collapseComplexity?: number
+    divergencePoint?: number
 }
 
 export interface BoundaryDerivationResult {
@@ -38,9 +38,9 @@ export function deriveBoundaries(
     message: string,
     strategies: PolicyStrategy[]
 ): BoundaryDerivationResult {
-    const tokens = Math.max(0, Math.ceil(message.length / 4))
-    const fastCost = Number(calculateCost("fast", message).estimatedCost.toFixed(6))
-    const balancedCost = Number(calculateCost("balanced", message).estimatedCost.toFixed(6))
+    const tokens = estimateTokens(message)
+    const fastCost = calculateCost("fast", message).estimatedCost
+    const balancedCost = calculateCost("balanced", message).estimatedCost
 
     const perStrategy: StrategyBoundaryDerivation[] = strategies.map(strategy => {
         const evaluate = (complexity: number): ModelTier => {
@@ -50,10 +50,10 @@ export function deriveBoundaries(
                 estimatedTokens: tokens
             }
             switch (strategy) {
-                case "costAware": return evaluatePolicyCostAware(input).selectedModel
-                case "retrievalWeighted": return evaluatePolicyRetrievalWeighted(input).selectedModel
+                case "costAware": return evaluatePolicyCostAware(input).policyDecision
+                case "retrievalWeighted": return evaluatePolicyRetrievalWeighted(input).policyDecision
                 case "threshold":
-                default: return evaluatePolicyThreshold(input).selectedModel
+                default: return evaluatePolicyThreshold(input).policyDecision
             }
         }
 
@@ -65,9 +65,9 @@ export function deriveBoundaries(
             throw new Error("Policy monotonicity violated — escalation detection invalid.")
         }
 
-        let policyEscalationComplexity: number | undefined
+        let escalationThreshold: number | undefined
 
-        if (modelAt0 !== modelAt1) {
+        if ((modelAt0 as string) !== (modelAt1 as string)) {
             // Binary search for escalation threshold
             let low = 0
             let high = 1
@@ -89,13 +89,13 @@ export function deriveBoundaries(
 
                 if (high - low < epsilon) break
             }
-            policyEscalationComplexity = Number(high.toFixed(6))
+            escalationThreshold = Number(high.toFixed(6))
         }
 
         const violationBelowBudget = fastCost
         let downgradeInterval: { lower: number; upper: number } | undefined
 
-        if (balancedCost > fastCost && policyEscalationComplexity !== undefined) {
+        if (balancedCost > fastCost && escalationThreshold !== undefined) {
             downgradeInterval = {
                 lower: fastCost,
                 upper: balancedCost
@@ -108,73 +108,73 @@ export function deriveBoundaries(
             balancedCost,
             violationBelowBudget,
             downgradeInterval,
-            policyEscalationComplexity
+            escalationThreshold
         }
     })
 
     // Divergence Detection
-    let divergenceComplexity: number | undefined
+    let divergencePoint: number | undefined
     const testComplexities = [0, 1]
 
     // Check 0 and 1 first
     for (const c of testComplexities) {
         const models = strategies.map(s => {
             const input: PolicyInput = { complexity: c, retrievalEnabled: false, estimatedTokens: tokens }
-            if (s === "costAware") return evaluatePolicyCostAware(input).selectedModel
-            if (s === "retrievalWeighted") return evaluatePolicyRetrievalWeighted(input).selectedModel
-            return evaluatePolicyThreshold(input).selectedModel
+            if (s === "costAware") return evaluatePolicyCostAware(input).policyDecision
+            if (s === "retrievalWeighted") return evaluatePolicyRetrievalWeighted(input).policyDecision
+            return evaluatePolicyThreshold(input).policyDecision
         })
         if (new Set(models).size > 1) {
-            divergenceComplexity = c
+            divergencePoint = c
             break
         }
     }
 
-    if (divergenceComplexity === undefined) {
+    if (divergencePoint === undefined) {
         // Check max escalation threshold
         const escalations = perStrategy
-            .map(s => s.policyEscalationComplexity)
+            .map(s => s.escalationThreshold)
             .filter((v): v is number => v !== undefined)
 
         if (escalations.length > 0) {
             const maxEscalation = Math.max(...escalations)
             const models = strategies.map(s => {
                 const input: PolicyInput = { complexity: maxEscalation, retrievalEnabled: false, estimatedTokens: tokens }
-                if (s === "costAware") return evaluatePolicyCostAware(input).selectedModel
-                if (s === "retrievalWeighted") return evaluatePolicyRetrievalWeighted(input).selectedModel
-                return evaluatePolicyThreshold(input).selectedModel
+                if (s === "costAware") return evaluatePolicyCostAware(input).policyDecision
+                if (s === "retrievalWeighted") return evaluatePolicyRetrievalWeighted(input).policyDecision
+                return evaluatePolicyThreshold(input).policyDecision
             })
             if (new Set(models).size > 1) {
-                divergenceComplexity = maxEscalation
+                divergencePoint = maxEscalation
             }
         }
     }
 
     // Collapse Detection
-    let collapseOccursBelowBudget: number | undefined
-    if (divergenceComplexity !== undefined) {
+    let collapseComplexity: number | undefined
+    if (divergencePoint !== undefined) {
         const resultsPre = comparePolicies({
             message,
-            complexity: divergenceComplexity,
+            complexity: divergencePoint,
             retrievalEnabled: false,
             budgetLimit: undefined
         }, strategies)
 
         const resultsPost = comparePolicies({
             message,
-            complexity: divergenceComplexity,
+            complexity: divergencePoint,
             retrievalEnabled: false,
             budgetLimit: fastCost
         }, strategies)
 
-        const selectedModelsPre = resultsPre.map(r => r.selectedModel)
-        const selectedModelsPost = resultsPost.map(r => r.selectedModel)
+        const selectedModelsPre = resultsPre.map(r => r.policyDecision)
+        const selectedModelsPost = resultsPost.map(r => r.policyDecision)
 
         const distinctPre = new Set(selectedModelsPre).size
         const distinctPost = new Set(selectedModelsPost).size
 
         if (distinctPre >= 2 && distinctPost === 1) {
-            collapseOccursBelowBudget = balancedCost
+            collapseComplexity = balancedCost
         }
     }
 
@@ -184,8 +184,8 @@ export function deriveBoundaries(
         perStrategy,
         global: {
             minimumBudgetForNoViolation,
-            collapseOccursBelowBudget,
-            divergenceComplexity
+            collapseComplexity,
+            divergencePoint
         }
     }
 }

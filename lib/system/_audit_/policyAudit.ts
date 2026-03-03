@@ -3,6 +3,8 @@ import { comparePolicies } from "../comparePolicies";
 import { PolicyStrategy } from "../types";
 import { analyzeBoundaries } from "../boundaryAnalysisEngine";
 import { deriveBoundaries } from "../boundaryDerivationEngine";
+import * as Invariants from "../invariantValidationEngine";
+import { deriveDecisionTopology } from "../topologyDerivationEngine";
 
 /**
  * PHASE 8A DETERMINISTIC CONSTRAINT ENGINE AUDIT
@@ -16,12 +18,12 @@ function assert(condition: boolean, message: string) {
     }
 }
 
-function deepEqual(obj1: any, obj2: any): boolean {
+function deepEqual(obj1: unknown, obj2: unknown): boolean {
     return JSON.stringify(obj1) === JSON.stringify(obj2);
 }
 
 // 2️⃣ DEFINE TEST RUNNER
-function runTest(input: any, strategy: PolicyStrategy, expectations: (result: any) => void) {
+function runTest(input: import("../types").SystemInput, strategy: PolicyStrategy, expectations: (result: import("../types").SystemResult) => void) {
     // Execute twice for determinism check
     const result1 = runSystem(input, strategy);
     const result2 = runSystem(input, strategy);
@@ -34,7 +36,7 @@ function runTest(input: any, strategy: PolicyStrategy, expectations: (result: an
 }
 
 // 3️⃣ MULTI-POLICY COMPARISON AUDIT
-function runComparisonAudit(input: any) {
+function runComparisonAudit(input: import("../types").SystemInput) {
     const strategies: PolicyStrategy[] = ["threshold", "costAware", "retrievalWeighted"];
 
     // Execute comparison twice for determinism check
@@ -50,13 +52,15 @@ function runComparisonAudit(input: any) {
 
         // Ensure constraint fields are present if budget exists
         if (input.budgetLimit !== undefined) {
-            assert(res.constraintOutcome !== undefined, `Missing constraintOutcome for ${res.strategy}`);
-            assert(res.finalModel !== undefined, `Missing finalModel for ${res.strategy}`);
+            assert(res.constraintState !== undefined, `Missing constraintState for ${res.strategy}`);
+            assert(res.resolvedModel !== undefined, `Missing resolvedModel for ${res.strategy}`);
         }
     }
 }
 
-console.log("Starting Phase 8A Policy Engine Audit...");
+console.log("----------------------------------------");
+console.log("Phase 8A — Constraint Enforcement");
+console.log("----------------------------------------");
 
 // CASE A: Standard Input
 const inputA = {
@@ -64,8 +68,8 @@ const inputA = {
     complexity: 0.1,
     retrievalEnabled: false
 };
-runTest(inputA, "threshold", (res) => assert(res.metadata.selectedModel === "fast", "CASE A: threshold should be fast"));
-runTest(inputA, "costAware", (res) => assert(res.metadata.selectedModel === "fast", "CASE A: costAware should be fast"));
+runTest(inputA, "threshold", (res) => assert(res.metadata.policyDecision === "fast", "CASE A: threshold should be fast"));
+runTest(inputA, "costAware", (res) => assert(res.metadata.policyDecision === "fast", "CASE A: costAware should be fast"));
 runComparisonAudit(inputA);
 console.log("✔ CASE A: PASSED");
 
@@ -75,7 +79,7 @@ const inputB = {
     complexity: 0.5,
     retrievalEnabled: false
 };
-runTest(inputB, "threshold", (res) => assert(res.metadata.selectedModel === "fast", "CASE B: threshold should be fast (tokens < 2000)"));
+runTest(inputB, "threshold", (res) => assert(res.metadata.policyDecision === "fast", "CASE B: threshold should be fast (tokens < 2000)"));
 runComparisonAudit(inputB);
 console.log("✔ CASE B: PASSED");
 
@@ -85,7 +89,7 @@ const inputC = {
     complexity: 0.9,
     retrievalEnabled: false
 };
-runTest(inputC, "costAware", (res) => assert(res.metadata.selectedModel === "balanced", "CASE C: costAware should be balanced"));
+runTest(inputC, "costAware", (res) => assert(res.metadata.policyDecision === "balanced", "CASE C: costAware should be balanced"));
 runComparisonAudit(inputC);
 console.log("✔ CASE C: PASSED");
 
@@ -95,7 +99,7 @@ const inputD = {
     complexity: 0.5,
     retrievalEnabled: true
 };
-runTest(inputD, "retrievalWeighted", (res) => assert(res.metadata.selectedModel === "balanced", "CASE D: retrievalWeighted should be balanced"));
+runTest(inputD, "retrievalWeighted", (res) => assert(res.metadata.policyDecision === "balanced", "CASE D: retrievalWeighted should be balanced"));
 runComparisonAudit(inputD);
 console.log("✔ CASE D: PASSED");
 
@@ -105,7 +109,7 @@ const inputE = {
     complexity: 0.8,
     retrievalEnabled: false
 };
-runTest(inputE, "threshold", (res) => assert(res.metadata.selectedModel === "balanced", "CASE E: threshold should be balanced"));
+runTest(inputE, "threshold", (res) => assert(res.metadata.policyDecision === "balanced", "CASE E: threshold should be balanced"));
 runComparisonAudit(inputE);
 console.log("✔ CASE E: PASSED");
 
@@ -119,8 +123,8 @@ const inputF = {
     budgetLimit: 0.1 // High enough for balanced
 };
 runTest(inputF, "threshold", (res) => {
-    assert(res.metadata.selectedModel === "balanced", "CASE F: should remain balanced");
-    assert(res.metadata.constraintOutcome === "unchanged", "CASE F: outcome should be unchanged");
+    assert(res.metadata.policyDecision === "balanced", "CASE F: should remain balanced");
+    assert(res.metadata.constraintState === "compliant", "CASE F: outcome should be compliant");
     assert(res.metadata.budgetLimit === 0.1, "CASE F: budgetLimit mismatch");
 });
 runComparisonAudit(inputF);
@@ -134,14 +138,14 @@ const inputG = {
     budgetLimit: 0.00002 // Too cheap for balanced (0.000042), but okay for fast (0.000014)
 };
 runTest(inputG, "threshold", (res) => {
-    assert(res.metadata.selectedModel === "fast", "CASE G: should be downgraded to fast");
-    assert(res.metadata.constraintOutcome === "downgraded", "CASE G: outcome should be downgraded");
-    assert(res.metadata.originalModel === "balanced", "CASE G: originalModel should be balanced");
-    assert(res.metadata.finalModel === "fast", "CASE G: finalModel should be fast");
+    assert(res.metadata.policyDecision === "fast", "CASE G: should be downgraded to fast");
+    assert(res.metadata.constraintState === "degraded", "CASE G: outcome should be degraded");
+    assert(res.metadata.preConstraintModel === "balanced", "CASE G: preConstraintModel should be balanced");
+    assert(res.metadata.resolvedModel === "fast", "CASE G: resolvedModel should be fast");
     assert(res.metadata.reasoning.includes("Estimated cost exceeds budget."), "CASE G: reasoning missing constraint alert");
     assert(res.metadata.reasoning.includes("Downgrading to fast model to satisfy budget constraint."), "CASE G: reasoning missing downgrade alert");
-    assert(res.metadata.costPressureRatio > 1, "CASE G: costPressureRatio should be > 1");
-    assert(res.metadata.budgetGap > 0, "CASE G: budgetGap should be > 0");
+    assert(res.metadata.budgetStress !== undefined && res.metadata.budgetStress > 1, "CASE G: budgetStress should be > 1");
+    assert(res.metadata.budgetDeficit !== undefined && res.metadata.budgetDeficit > 0, "CASE G: budgetDeficit should be > 0");
 });
 runComparisonAudit(inputG);
 console.log("✔ CASE G: PASSED");
@@ -154,8 +158,8 @@ const inputH = {
     budgetLimit: 0.0001 // Even fast (~0.00145) is too expensive
 };
 runTest(inputH, "threshold", (res) => {
-    assert(res.metadata.selectedModel === "fast", "CASE H: should remain fast (no lower tier)");
-    assert(res.metadata.constraintOutcome === "violated", "CASE H: outcome should be violated");
+    assert(res.metadata.policyDecision === "fast", "CASE H: should remain fast (no lower tier)");
+    assert(res.metadata.constraintState === "breached", "CASE H: outcome should be breached");
     assert(res.metadata.reasoning.includes("Estimated cost exceeds budget."), "CASE H: reasoning missing constraint alert");
     assert(res.metadata.reasoning.includes("Budget violation cannot be resolved."), "CASE H: reasoning missing violation alert");
 });
@@ -164,7 +168,7 @@ console.log("✔ CASE H: PASSED");
 
 // --- PHASE 8B BOUNDARY ANALYSIS ENGINE AUDIT ---
 
-function runBoundaryAnalysisAudit(input: any) {
+function runBoundaryAnalysisAudit(input: import("../types").SystemInput) {
     const strategies: PolicyStrategy[] = ["threshold", "costAware", "retrievalWeighted"];
     const results = comparePolicies(input, strategies);
 
@@ -199,7 +203,9 @@ function runBoundaryAnalysisAudit(input: any) {
     }
 }
 
-console.log("Starting Phase 8B Boundary Analysis Audit...");
+console.log("----------------------------------------");
+console.log("Phase 8B — Boundary Analysis");
+console.log("----------------------------------------");
 
 // CASE I: Natural Divergence (Pre-Constraint)
 const inputI = {
@@ -243,13 +249,13 @@ function runHybridBoundaryDerivationAudit(message: string) {
         assert(typeof s.balancedCost === "number", "balancedCost must be number");
         assert(s.violationBelowBudget === s.fastCost, "violationBelowBudget must equal fastCost");
 
-        if (s.policyEscalationComplexity !== undefined) {
-            assert(s.policyEscalationComplexity >= 0 && s.policyEscalationComplexity <= 1, "Escalation complexity out of bounds");
+        if (s.escalationThreshold !== undefined) {
+            assert(s.escalationThreshold >= 0 && s.escalationThreshold <= 1, "Escalation complexity out of bounds");
         }
 
         if (s.downgradeInterval !== undefined) {
             assert(s.balancedCost > s.fastCost, "Downgrade interval exists but balancedCost <= fastCost");
-            assert(s.policyEscalationComplexity !== undefined, "Downgrade interval exists but escalation complexity undefined");
+            assert(s.escalationThreshold !== undefined, "Downgrade interval exists but escalation complexity undefined");
             assert(s.downgradeInterval.lower === s.fastCost, "downgradeInterval.lower mismatch");
             assert(s.downgradeInterval.upper === s.balancedCost, "downgradeInterval.upper mismatch");
         }
@@ -257,16 +263,19 @@ function runHybridBoundaryDerivationAudit(message: string) {
 
     // Global metric verification
     const { global } = result1;
-    if (global.divergenceComplexity !== undefined) {
-        assert(global.divergenceComplexity >= 0 && global.divergenceComplexity <= 1, "Divergence complexity out of bounds");
+    if (global.divergencePoint !== undefined) {
+        assert(global.divergencePoint >= 0 && global.divergencePoint <= 1, "Divergence complexity out of bounds");
     }
 
-    if (global.collapseOccursBelowBudget !== undefined) {
-        assert(global.divergenceComplexity !== undefined, "Collapse detected but divergence complexity undefined");
+    if (global.collapseComplexity !== undefined) {
+        assert(global.divergencePoint !== undefined, "Collapse detected but divergence complexity undefined");
     }
 }
 
-console.log("Starting Phase 10 Hybrid Boundary Derivation Audit...");
+
+console.log("----------------------------------------");
+console.log("Phase 10 — Hybrid Boundary Derivation");
+console.log("----------------------------------------");
 
 // CASE K: Standard Analytical Derivation
 runHybridBoundaryDerivationAudit("Test message for boundaries");
@@ -278,7 +287,6 @@ console.log("✔ CASE L: PASSED");
 
 // --- PHASE 11 INVARIANT VALIDATION ENGINE AUDIT ---
 
-import * as Invariants from "../invariantValidationEngine";
 
 function runInvariantAudit(message: string) {
     const strategies: PolicyStrategy[] = ["threshold", "costAware", "retrievalWeighted"];
@@ -292,14 +300,111 @@ function runInvariantAudit(message: string) {
     Invariants.validateIdempotence(message, strategies);
 }
 
-console.log("Starting Phase 11 Invariant Validation Audit...");
+console.log("----------------------------------------");
+console.log("Phase 11 — Invariant Validation");
+console.log("----------------------------------------");
 
 // CASE M: Comprehensive invariant check
 runInvariantAudit("Verification of complex system invariants under varying conditions.");
 console.log("✔ CASE M: PASSED");
 
-// 4️⃣ PURITY CHECK (STATIC)
-console.log("Purity Check: All evaluation functions are synchronous, deterministic, and pure.");
+// --- PHASE V2 DECISION TOPOLOGY AUDIT ---
 
-// 5️⃣ FINAL OUTPUT
-console.log("PHASE 11 POLICY ENGINE AUDIT: PASS\n");
+console.log("----------------------------------------");
+console.log("Phase V2 — Decision Topology Audit");
+console.log("----------------------------------------");
+
+// CASE N: No budget — Segmentation aligns with escalationThresholds
+{
+    const topology = deriveDecisionTopology({});
+    assert(topology.regions.length > 0, "CASE N: Must produce at least one region");
+
+    // Every non-undefined escalation threshold must appear as a region boundary
+    const allBoundaries = new Set<number>();
+    for (const region of topology.regions) {
+        allBoundaries.add(region.complexityRange[0]);
+        allBoundaries.add(region.complexityRange[1]);
+    }
+
+    const strategies: PolicyStrategy[] = ["threshold", "costAware", "retrievalWeighted"];
+    for (const s of strategies) {
+        const threshold = topology.escalationThresholds[s];
+        if (threshold !== undefined) {
+            assert(allBoundaries.has(Number(threshold.toFixed(6))),
+                `CASE N: escalationThreshold for ${s} (${threshold}) not found in region boundaries`);
+        }
+    }
+
+    // Verify regions span [0, 1]
+    assert(topology.regions[0].complexityRange[0] === 0, "CASE N: First region must start at 0");
+    assert(topology.regions[topology.regions.length - 1].complexityRange[1] === 1, "CASE N: Last region must end at 1");
+
+    // Verify contiguity
+    for (let i = 1; i < topology.regions.length; i++) {
+        assert(topology.regions[i].complexityRange[0] === topology.regions[i - 1].complexityRange[1],
+            `CASE N: Region gap between index ${i - 1} and ${i}`);
+    }
+}
+console.log("✔ CASE N: PASSED");
+
+// CASE O: Budget applied — resolvedModel changes reflected in regions
+{
+    const topology = deriveDecisionTopology({ budgetLimit: 0.000001 });
+    assert(topology.regions.length > 0, "CASE O: Must produce at least one region");
+
+    // With an extremely tight budget, at least one region must show non-compliant constraint
+    let hasNonCompliant = false;
+    for (const region of topology.regions) {
+        const strategies: PolicyStrategy[] = ["threshold", "costAware", "retrievalWeighted"];
+        for (const s of strategies) {
+            const decision = region.strategyDecisions[s];
+            if (decision && decision.constraintState !== "compliant") {
+                hasNonCompliant = true;
+            }
+        }
+    }
+    assert(hasNonCompliant, "CASE O: Tight budget must produce at least one non-compliant constraint state");
+}
+console.log("✔ CASE O: PASSED");
+
+// CASE P: collapseComplexity present — regions below show strategiesAligned = true
+{
+    const topology = deriveDecisionTopology({ budgetLimit: 0.000001 });
+
+    if (topology.collapseComplexity !== undefined) {
+        const collapse = Number(topology.collapseComplexity.toFixed(6));
+        for (const region of topology.regions) {
+            if (region.complexityRange[1] <= collapse) {
+                assert(region.strategiesAligned === true,
+                    `CASE P: Region [${region.complexityRange[0]}, ${region.complexityRange[1]}] below collapseComplexity must be aligned`);
+            }
+        }
+    }
+    // If collapseComplexity is undefined, this test is vacuously true
+}
+console.log("✔ CASE P: PASSED");
+
+// CASE Q: Determinism — two calls, deep compare
+{
+    const topo1 = deriveDecisionTopology({});
+    const topo2 = deriveDecisionTopology({});
+    assert(deepEqual(topo1, topo2), "CASE Q: Determinism violated — topology outputs differ between runs");
+
+    const topo3 = deriveDecisionTopology({ budgetLimit: 0.00005 });
+    const topo4 = deriveDecisionTopology({ budgetLimit: 0.00005 });
+    assert(deepEqual(topo3, topo4), "CASE Q: Determinism violated — budgeted topology outputs differ between runs");
+}
+console.log("✔ CASE Q: PASSED");
+
+// 4️⃣ DETERMINISM CHECK
+console.log("Determinism Check: VERIFIED");
+
+// 5️⃣ FINAL SUMMARY
+console.log("----------------------------------------");
+console.log("System Integrity Report");
+console.log("----------------------------------------");
+console.log("All invariant and policy validation phases passed.");
+console.log("Deterministic guarantees confirmed.");
+console.log("----------------------------------------");
+console.log("");
+console.log("FINAL STATUS: PASS");

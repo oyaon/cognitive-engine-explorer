@@ -8,6 +8,7 @@ import {
 import { enforceConstraint, ConstraintResult } from "./constraintEngine"
 import { comparePolicies, ComparisonResult } from "./comparePolicies"
 import { deriveBoundaries, BoundaryDerivationResult } from "./boundaryDerivationEngine"
+import { estimateTokens } from "./calculateCost"
 
 const EPS = 1e-6;
 
@@ -15,7 +16,7 @@ function normalize(value: number): number {
     return Number(value.toFixed(6));
 }
 
-function deepEqual(obj1: any, obj2: any): boolean {
+function deepEqual(obj1: unknown, obj2: unknown): boolean {
     return JSON.stringify(obj1) === JSON.stringify(obj2);
 }
 
@@ -26,10 +27,10 @@ function evaluate(strategy: PolicyStrategy, complexity: number, tokens: number):
         estimatedTokens: tokens
     };
     switch (strategy) {
-        case "costAware": return evaluatePolicyCostAware(input).selectedModel;
-        case "retrievalWeighted": return evaluatePolicyRetrievalWeighted(input).selectedModel;
+        case "costAware": return evaluatePolicyCostAware(input).policyDecision;
+        case "retrievalWeighted": return evaluatePolicyRetrievalWeighted(input).policyDecision;
         case "threshold":
-        default: return evaluatePolicyThreshold(input).selectedModel;
+        default: return evaluatePolicyThreshold(input).policyDecision;
     }
 }
 
@@ -40,10 +41,10 @@ export function validateEscalationMonotonicity(
     message: string,
     derivation: BoundaryDerivationResult
 ) {
-    const tokens = Math.max(0, Math.ceil(message.length / 4));
+    const tokens = estimateTokens(message);
 
     for (const s of derivation.perStrategy) {
-        const T = s.policyEscalationComplexity;
+        const T = s.escalationThreshold;
         if (T === undefined) continue;
 
         const testPoints = [0, normalize(T - EPS), normalize(T), normalize(T + EPS), 1];
@@ -67,10 +68,10 @@ export function validateEscalationStability(
     message: string,
     derivation: BoundaryDerivationResult
 ) {
-    const tokens = Math.max(0, Math.ceil(message.length / 4));
+    const tokens = estimateTokens(message);
 
     for (const s of derivation.perStrategy) {
-        const T = s.policyEscalationComplexity;
+        const T = s.escalationThreshold;
         if (T === undefined) continue;
 
         const mMinus = evaluate(s.strategy, normalize(T - EPS), tokens);
@@ -91,7 +92,7 @@ export function validateConstraintCoherence(
     derivation: BoundaryDerivationResult
 ) {
     // Select strategy that produces "balanced" at some complexity
-    const strategyResult = derivation.perStrategy.find(s => s.policyEscalationComplexity !== undefined);
+    const strategyResult = derivation.perStrategy.find(s => s.escalationThreshold !== undefined);
     if (!strategyResult) return;
 
     const strategy = strategyResult.strategy;
@@ -106,14 +107,14 @@ export function validateConstraintCoherence(
         normalize(fastCost - EPS)
     ];
 
-    const expectedOutcomes = ["unchanged", "unchanged", "downgraded", "violated"];
+    const expectedOutcomes = ["compliant", "compliant", "degraded", "breached"];
 
     for (let i = 0; i < testBudgets.length; i++) {
         const budget = testBudgets[i];
         const result = enforceConstraint("balanced", balancedCost, fastCost, budget);
 
-        if (result.constraintOutcome !== expectedOutcomes[i]) {
-            throw new Error(`Constraint coherence violation: expected ${expectedOutcomes[i]} at budget ${budget}, got ${result.constraintOutcome}`);
+        if (result.constraintState !== expectedOutcomes[i]) {
+            throw new Error(`Constraint coherence violation: expected ${expectedOutcomes[i]} at budget ${budget}, got ${result.constraintState}`);
         }
     }
 }
@@ -125,10 +126,10 @@ export function validateCollapseStability(
     message: string,
     derivation: BoundaryDerivationResult
 ) {
-    if (derivation.global.collapseOccursBelowBudget === undefined) return;
-    if (derivation.global.divergenceComplexity === undefined) return;
+    if (derivation.global.collapseComplexity === undefined) return;
+    if (derivation.global.divergencePoint === undefined) return;
 
-    const divC = derivation.global.divergenceComplexity;
+    const divC = derivation.global.divergencePoint;
     const strategies: PolicyStrategy[] = derivation.perStrategy.map(s => s.strategy);
 
     // Convergence check helper
@@ -139,7 +140,7 @@ export function validateCollapseStability(
             retrievalEnabled: false,
             budgetLimit: budget
         }, strategies);
-        return new Set(results.map(r => r.selectedModel)).size === 1;
+        return new Set(results.map(r => r.policyDecision)).size === 1;
     };
 
     // Above collapse (no budget) -> Divergence exists
@@ -150,7 +151,7 @@ export function validateCollapseStability(
     // At/below collapse
     const fastCost = derivation.perStrategy[0].fastCost;
     const collapseBudgets = [
-        derivation.global.collapseOccursBelowBudget, // balancedCost
+        derivation.global.collapseComplexity, // balancedCost
         fastCost,
         normalize(fastCost - EPS)
     ];
@@ -183,14 +184,14 @@ export function validateIdempotence(
         const r1 = c1[i];
         const r2 = c2[i];
 
-        if (r1.selectedModel !== r2.selectedModel) throw new Error("Idempotence violation: selectedModel");
-        if (r1.finalModel !== r2.finalModel) throw new Error("Idempotence violation: finalModel");
+        if (r1.policyDecision !== r2.policyDecision) throw new Error("Idempotence violation: policyDecision");
+        if (r1.resolvedModel !== r2.resolvedModel) throw new Error("Idempotence violation: resolvedModel");
         if (!deepEqual(r1.reasoning, r2.reasoning)) throw new Error("Idempotence violation: reasoning");
-        if (r1.tokensUsed !== r2.tokensUsed) throw new Error("Idempotence violation: tokensUsed");
-        if (r1.estimatedCost !== r2.estimatedCost) throw new Error("Idempotence violation: estimatedCost");
+        if (r1.tokenEstimate !== r2.tokenEstimate) throw new Error("Idempotence violation: tokenEstimate");
+        if (r1.projectedCost !== r2.projectedCost) throw new Error("Idempotence violation: projectedCost");
 
-        const meta1 = { outcome: r1.constraintOutcome, ratio: r1.costPressureRatio, gap: r1.budgetGap, limit: r1.budgetLimit };
-        const meta2 = { outcome: r2.constraintOutcome, ratio: r2.costPressureRatio, gap: r2.budgetGap, limit: r2.budgetLimit };
+        const meta1 = { outcome: r1.constraintState, ratio: r1.budgetStress, gap: r1.budgetDeficit, limit: r1.budgetLimit };
+        const meta2 = { outcome: r2.constraintState, ratio: r2.budgetStress, gap: r2.budgetDeficit, limit: r2.budgetLimit };
         if (!deepEqual(meta1, meta2)) throw new Error("Idempotence violation: constraint metadata");
     }
 

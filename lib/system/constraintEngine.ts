@@ -6,17 +6,17 @@ import { ModelTier } from "./types"
  */
 
 export type ConstraintOutcome =
-    | "unchanged"
-    | "downgraded"
-    | "violated"
+    | "compliant"
+    | "degraded"
+    | "breached"
 
 export interface ConstraintResult {
-    finalModel: ModelTier
-    originalModel: ModelTier
-    constraintOutcome: ConstraintOutcome
+    resolvedModel: ModelTier
+    preConstraintModel: ModelTier
+    constraintState: ConstraintOutcome
     budgetLimit?: number
-    costPressureRatio?: number
-    budgetGap?: number
+    budgetStress?: number
+    budgetDeficit?: number
 }
 
 /**
@@ -35,9 +35,9 @@ export function enforceConstraint(
     // Rule 1: If budgetLimit is undefined
     if (budgetLimit === undefined) {
         return {
-            finalModel: selectedModel,
-            originalModel: selectedModel,
-            constraintOutcome: "unchanged"
+            resolvedModel: selectedModel,
+            preConstraintModel: selectedModel,
+            constraintState: "compliant"
         }
     }
 
@@ -49,35 +49,35 @@ export function enforceConstraint(
     // Rule 3: If estimatedCost <= budgetLimit
     if (estimatedCost <= budgetLimit) {
         return {
-            finalModel: selectedModel,
-            originalModel: selectedModel,
-            constraintOutcome: "unchanged",
+            resolvedModel: selectedModel,
+            preConstraintModel: selectedModel,
+            constraintState: "compliant",
             budgetLimit
         }
     }
 
-    // Rule 4: If estimatedCost > budgetLimit
+    // Arbitration Logic
     const costPressureRatio = Number((estimatedCost / budgetLimit).toFixed(6))
     const budgetGap = Number((estimatedCost - budgetLimit).toFixed(6))
 
     // Arbitration Logic
     if (selectedModel === "balanced" && fastCost <= budgetLimit) {
         return {
-            finalModel: "fast",
-            originalModel: selectedModel,
-            constraintOutcome: "downgraded",
+            resolvedModel: "fast",
+            preConstraintModel: selectedModel,
+            constraintState: "degraded",
             budgetLimit,
-            costPressureRatio,
-            budgetGap
+            budgetStress: costPressureRatio,
+            budgetDeficit: budgetGap
         }
     }
 
     return {
-        finalModel: selectedModel,
-        originalModel: selectedModel,
-        constraintOutcome: "violated",
+        resolvedModel: selectedModel,
+        preConstraintModel: selectedModel,
+        constraintState: "breached",
         budgetLimit,
-        costPressureRatio,
-        budgetGap
+        budgetStress: costPressureRatio,
+        budgetDeficit: budgetGap
     }
 }

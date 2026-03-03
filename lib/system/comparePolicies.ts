@@ -5,20 +5,20 @@ import {
     evaluatePolicyRetrievalWeighted,
     PolicyInput
 } from "./policyEngine"
-import { calculateCost } from "./calculateCost"
+import { calculateCost, estimateTokens } from "./calculateCost"
 import { enforceConstraint, ConstraintOutcome } from "./constraintEngine"
 
 export type ComparisonResult = {
     strategy: PolicyStrategy
-    selectedModel: ModelTier
+    policyDecision: ModelTier
     reasoning: string[]
-    estimatedCost: number
-    tokensUsed: number
-    constraintOutcome?: ConstraintOutcome
-    originalModel?: ModelTier
-    finalModel?: ModelTier
-    costPressureRatio?: number
-    budgetGap?: number
+    projectedCost: number
+    tokenEstimate: number
+    constraintState?: ConstraintOutcome
+    preConstraintModel?: ModelTier
+    resolvedModel?: ModelTier
+    budgetStress?: number
+    budgetDeficit?: number
     budgetLimit?: number
 }
 
@@ -36,7 +36,7 @@ export function comparePolicies(
     }
 
     // 1. Calculate tokens once for all evaluations
-    const estimatedTokens = Math.max(0, Math.ceil(input.message.length / 4))
+    const estimatedTokens = estimateTokens(input.message)
 
     const policyInput: PolicyInput = {
         complexity: input.complexity,
@@ -46,7 +46,7 @@ export function comparePolicies(
 
     // 2. Map strategies preserves providing ordering
     return strategies.map(strategy => {
-        let evaluation;
+        let evaluation: { policyDecision: ModelTier, reasoning: string[] };
 
         switch (strategy) {
             case "costAware":
@@ -61,7 +61,7 @@ export function comparePolicies(
                 break;
         }
 
-        const { selectedModel, reasoning } = evaluation;
+        const { policyDecision: selectedModel, reasoning: policyReasoning } = evaluation;
 
         // Apply Constraints
         let { tokensUsed, estimatedCost } = calculateCost(selectedModel, input.message);
@@ -74,23 +74,26 @@ export function comparePolicies(
             input.budgetLimit
         );
 
-        if (constraint.constraintOutcome === "downgraded") {
+        if (constraint.constraintState === "degraded") {
             const fastResult = calculateCost("fast", input.message);
             tokensUsed = fastResult.tokensUsed;
             estimatedCost = fastResult.estimatedCost;
         }
 
+        const reasoning = policyReasoning.filter(r => !r.startsWith("Final model selected:"));
+        reasoning.push(`Final model selected: ${constraint.resolvedModel}`);
+
         return {
             strategy,
-            selectedModel: constraint.finalModel,
+            policyDecision: constraint.resolvedModel,
             reasoning,
-            estimatedCost,
-            tokensUsed,
-            constraintOutcome: constraint.constraintOutcome,
-            originalModel: selectedModel,
-            finalModel: constraint.finalModel,
-            costPressureRatio: constraint.costPressureRatio,
-            budgetGap: constraint.budgetGap,
+            projectedCost: estimatedCost,
+            tokenEstimate: tokensUsed,
+            constraintState: constraint.constraintState,
+            preConstraintModel: selectedModel,
+            resolvedModel: constraint.resolvedModel,
+            budgetStress: constraint.budgetStress,
+            budgetDeficit: constraint.budgetDeficit,
             budgetLimit: constraint.budgetLimit
         };
     });

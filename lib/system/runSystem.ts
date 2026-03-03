@@ -1,10 +1,6 @@
-import { SystemInput, SystemResult, PolicyStrategy } from "./types"
-import {
-    evaluatePolicyThreshold,
-    evaluatePolicyCostAware,
-    evaluatePolicyRetrievalWeighted
-} from "./policyEngine"
-import { calculateCost } from "./calculateCost"
+import { SystemInput, SystemResult, PolicyStrategy, ModelTier } from "./types"
+import { evaluatePolicyThreshold, evaluatePolicyCostAware, evaluatePolicyRetrievalWeighted } from "./policyEngine"
+import { calculateCost, estimateTokens } from "./calculateCost"
 import { assemblePrompt } from "./assemblePrompt"
 import { enforceConstraint } from "./constraintEngine"
 
@@ -20,7 +16,7 @@ export function runSystem(input: SystemInput, strategy: PolicyStrategy = "thresh
     }
 
     // 1. Calculate token estimation for policy input
-    const estimatedTokens = Math.max(0, Math.ceil(input.message.length / 4))
+    const estimatedTokens = estimateTokens(input.message)
 
     // 2. Determine model via deterministic policy engine
     const policyInput = {
@@ -29,7 +25,7 @@ export function runSystem(input: SystemInput, strategy: PolicyStrategy = "thresh
         estimatedTokens
     }
 
-    let evaluation;
+    let evaluation: { policyDecision: ModelTier, reasoning: string[] };
     switch (strategy) {
         case "costAware":
             evaluation = evaluatePolicyCostAware(policyInput);
@@ -43,7 +39,7 @@ export function runSystem(input: SystemInput, strategy: PolicyStrategy = "thresh
             break;
     }
 
-    const { selectedModel, reasoning: policyReasoning } = evaluation;
+    const { policyDecision: selectedModel, reasoning: policyReasoning } = evaluation;
 
     // 3. Build prompt
     const prompt = assemblePrompt(input)
@@ -60,21 +56,26 @@ export function runSystem(input: SystemInput, strategy: PolicyStrategy = "thresh
         input.budgetLimit
     )
 
-    const reasoning = [...policyReasoning]
-    if (constraint.constraintOutcome === "downgraded") {
+    const filteredReasoning = policyReasoning.filter(r => !r.startsWith("Final model selected:"));
+    const reasoning = [...filteredReasoning]
+
+    if (constraint.constraintState === "degraded") {
         // Recalculate cost for fast model
         const fastResult = calculateCost("fast", input.message)
         tokensUsed = fastResult.tokensUsed
         estimatedCost = fastResult.estimatedCost
         reasoning.push("Estimated cost exceeds budget.")
         reasoning.push("Downgrading to fast model to satisfy budget constraint.")
-    } else if (constraint.constraintOutcome === "violated") {
+    } else if (constraint.constraintState === "breached") {
         reasoning.push("Estimated cost exceeds budget.")
         reasoning.push("Budget violation cannot be resolved.")
     }
 
+    // Ensure Terminal Reasoning Contract
+    reasoning.push(`Final model selected: ${constraint.resolvedModel}`)
+
     // 6. Generate mock response
-    const finalModel = constraint.finalModel
+    const finalModel = constraint.resolvedModel
     const response = `Processed using ${finalModel} model with retrieval ${input.retrievalEnabled ? "enabled" : "disabled"
         }. Policy: ${strategy}.`
 
@@ -83,17 +84,17 @@ export function runSystem(input: SystemInput, strategy: PolicyStrategy = "thresh
         response,
         prompt,
         metadata: {
-            selectedModel: finalModel,
-            estimatedCost,
-            tokensUsed,
+            policyDecision: finalModel,
+            projectedCost: estimatedCost,
+            tokenEstimate: tokensUsed,
             retrievalUsed: input.retrievalEnabled,
             reasoning,
-            constraintOutcome: constraint.constraintOutcome,
-            originalModel: selectedModel,
-            finalModel: finalModel,
+            constraintState: constraint.constraintState,
+            preConstraintModel: selectedModel,
+            resolvedModel: finalModel,
             budgetLimit: constraint.budgetLimit,
-            costPressureRatio: constraint.costPressureRatio,
-            budgetGap: constraint.budgetGap
+            budgetStress: constraint.budgetStress,
+            budgetDeficit: constraint.budgetDeficit
         }
     }
 }

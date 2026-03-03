@@ -3,9 +3,9 @@ import { ComparisonResult } from "./comparePolicies"
 
 export interface PerStrategyBoundaryMetrics {
     strategy: PolicyStrategy
-    originalModel: ModelTier
-    finalModel: ModelTier
-    estimatedCost: number
+    preConstraintModel: ModelTier
+    resolvedModel: ModelTier
+    projectedCost: number
     downgradeTriggered: boolean
     violationTriggered: boolean
     stabilityMargin?: number
@@ -35,25 +35,26 @@ export function analyzeBoundaries(
     const perStrategy: PerStrategyBoundaryMetrics[] = comparisonResults.map(result => {
         const metrics: PerStrategyBoundaryMetrics = {
             strategy: result.strategy,
-            originalModel: result.originalModel || result.selectedModel, // fallback if not explicitly provided
-            finalModel: result.finalModel || result.selectedModel,
-            estimatedCost: result.estimatedCost,
-            downgradeTriggered: result.constraintOutcome === "downgraded",
-            violationTriggered: result.constraintOutcome === "violated"
+            preConstraintModel: result.preConstraintModel || result.policyDecision, // fallback if not explicitly provided
+            resolvedModel: result.resolvedModel || result.policyDecision,
+            projectedCost: result.projectedCost,
+            downgradeTriggered: result.constraintState === "degraded",
+            violationTriggered: result.constraintState === "breached"
         };
 
         if (result.budgetLimit !== undefined) {
             metrics.stabilityMargin = Number(
-                (result.budgetLimit - result.estimatedCost).toFixed(6)
+                (result.budgetLimit - result.projectedCost).toFixed(6)
             );
         }
 
         return metrics;
     });
 
-    const allOriginalModels = perStrategy.map(m => m.originalModel);
-    const allFinalModels = perStrategy.map(m => m.finalModel);
-    const costs = perStrategy.map(m => m.estimatedCost);
+    const allOriginalModels = perStrategy.map(m => m.preConstraintModel);
+    const allFinalModels = perStrategy.map(m => m.resolvedModel);
+    const costs = perStrategy.map(m => m.projectedCost);
+
 
     const preConstraintConvergence = allOriginalModels.length > 0 &&
         allOriginalModels.every(m => m === allOriginalModels[0]);

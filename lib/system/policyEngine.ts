@@ -30,7 +30,7 @@ export function evaluatePolicyThreshold(input: PolicyInput) {
 
     reasoning.push(`Final model selected: ${selectedModel}`)
 
-    return { selectedModel, reasoning }
+    return { policyDecision: selectedModel, reasoning }
 }
 
 /**
@@ -50,7 +50,7 @@ export function evaluatePolicyCostAware(input: PolicyInput) {
 
     reasoning.push(`Final model selected: ${selectedModel}`)
 
-    return { selectedModel, reasoning }
+    return { policyDecision: selectedModel, reasoning }
 }
 
 /**
@@ -70,5 +70,5 @@ export function evaluatePolicyRetrievalWeighted(input: PolicyInput) {
 
     reasoning.push(`Final model selected: ${selectedModel}`)
 
-    return { selectedModel, reasoning }
+    return { policyDecision: selectedModel, reasoning }
 }
