@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { PolicyStrategy } from "@/lib/system/types";
+import { ComparisonResult } from "@/lib/system/comparePolicies";
 
 const layers = [
+  // ... (lines 6-159 remain the same)
   {
     id: "interface",
     title: "Interface Layer",
@@ -181,6 +184,10 @@ export default function ArchitecturePage() {
     observability: "border-violet-400",
   };
 
+  const [mode, setMode] = useState<"single" | "compare">("single");
+  const [selectedStrategy, setSelectedStrategy] = useState<PolicyStrategy>("threshold");
+  const [comparisonResults, setComparisonResults] = useState<ComparisonResult[] | null>(null);
+
   const [complexity, setComplexity] = useState(0.45);
   const [retrievalEnabled, setRetrievalEnabled] = useState(true);
 
@@ -206,7 +213,12 @@ export default function ArchitecturePage() {
 
     setIsRunning(true);
     setError(null);
-    setExecutionResult(null);
+
+    if (mode === "compare") {
+      setExecutionResult(null);
+    } else {
+      setComparisonResults(null);
+    }
 
     try {
       const res = await fetch("/api/run", {
@@ -216,6 +228,8 @@ export default function ArchitecturePage() {
           message: inputMessage,
           complexity,
           retrievalEnabled,
+          strategy: mode === "single" ? selectedStrategy : undefined,
+          compare: mode === "compare",
         }),
       });
 
@@ -224,19 +238,23 @@ export default function ArchitecturePage() {
       if (!res.ok) {
         setError(data.error || "Execution failed");
       } else {
-        setExecutionResult(data);
+        if (mode === "compare") {
+          setComparisonResults(data.comparisons);
+        } else {
+          setExecutionResult(data);
 
-        const record: ExecutionRecord = {
-          id: crypto.randomUUID(),
-          message: inputMessage,
-          selectedModel: data.metadata.selectedModel,
-          tokensUsed: data.metadata.tokensUsed,
-          estimatedCost: data.metadata.estimatedCost,
-          retrievalUsed: data.metadata.retrievalUsed,
-          timestamp: Date.now(),
-        };
+          const record: ExecutionRecord = {
+            id: crypto.randomUUID(),
+            message: inputMessage,
+            selectedModel: data.metadata.selectedModel,
+            tokensUsed: data.metadata.tokensUsed,
+            estimatedCost: data.metadata.estimatedCost,
+            retrievalUsed: data.metadata.retrievalUsed,
+            timestamp: Date.now(),
+          };
 
-        setExecutionHistory((prev) => [record, ...prev]);
+          setExecutionHistory((prev) => [record, ...prev]);
+        }
       }
     } catch {
       setError("Network error");
@@ -398,10 +416,52 @@ export default function ArchitecturePage() {
           </AnimatePresence>
 
           <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center space-x-2 p-1 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 mb-6">
+              <button
+                onClick={() => {
+                  setMode("single");
+                  setComparisonResults(null);
+                }}
+                className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all ${mode === "single"
+                  ? "bg-white dark:bg-gray-800 shadow-sm text-zinc-900 dark:text-zinc-100 border border-gray-200 dark:border-zinc-700"
+                  : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  }`}
+              >
+                Single Strategy
+              </button>
+              <button
+                onClick={() => {
+                  setMode("compare");
+                  setExecutionResult(null);
+                }}
+                className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all ${mode === "compare"
+                  ? "bg-white dark:bg-gray-800 shadow-sm text-zinc-900 dark:text-zinc-100 border border-gray-200 dark:border-zinc-700"
+                  : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  }`}
+              >
+                Compare All
+              </button>
+            </div>
+
             <h3 className="text-sm font-semibold mb-4">
               Runtime Simulation
             </h3>
             <div className="space-y-4">
+              {mode === "single" && (
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Policy Strategy</label>
+                  <select
+                    value={selectedStrategy}
+                    onChange={(e) => setSelectedStrategy(e.target.value as PolicyStrategy)}
+                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-gray-400 transition-all font-sans"
+                  >
+                    <option value="threshold">Threshold (Default)</option>
+                    <option value="costAware">Cost Aware</option>
+                    <option value="retrievalWeighted">Retrieval Weighted</option>
+                  </select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <input
                   type="range"
@@ -458,6 +518,86 @@ export default function ArchitecturePage() {
                   <p className="text-xs text-red-500 font-medium">
                     {error}
                   </p>
+                </div>
+              )}
+
+              {comparisonResults && (
+                <div className="pt-6 space-y-6">
+                  {(() => {
+                    const lowestCost = Math.min(...comparisonResults.map(r => r.estimatedCost));
+                    const models = new Set(comparisonResults.map(r => r.selectedModel));
+                    const hasDivergence = models.size > 1;
+
+                    return (
+                      <>
+                        {hasDivergence && (
+                          <p className="text-[10px] text-gray-500 font-medium uppercase tracking-tight">
+                            Policy divergence detected
+                          </p>
+                        )}
+
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[11px] text-left border-collapse">
+                            <thead>
+                              <tr className="border-b border-gray-100 dark:border-gray-800">
+                                <th className="py-2 font-semibold text-gray-400 uppercase tracking-wider">Strategy</th>
+                                <th className="py-2 font-semibold text-gray-400 uppercase tracking-wider">Model</th>
+                                <th className="py-2 font-semibold text-gray-400 uppercase tracking-wider text-right">Tokens</th>
+                                <th className="py-2 font-semibold text-gray-400 uppercase tracking-wider text-right">Cost</th>
+                                <th className="py-2 font-semibold text-gray-400 uppercase tracking-wider text-center">Escalated</th>
+                                <th className="py-2 font-semibold text-gray-400 uppercase tracking-wider text-right">Cost Δ</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50 dark:divide-gray-900">
+                              {comparisonResults.map((res) => {
+                                const delta = res.estimatedCost - lowestCost;
+                                return (
+                                  <tr key={res.strategy}>
+                                    <td className="py-3 font-medium text-zinc-900 dark:text-zinc-100 capitalize">{res.strategy}</td>
+                                    <td className="py-3">
+                                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${res.selectedModel === "fast"
+                                        ? "bg-gray-100 dark:bg-gray-800 text-gray-500"
+                                        : "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
+                                        }`}>
+                                        {res.selectedModel}
+                                      </span>
+                                    </td>
+                                    <td className="py-3 text-right font-mono text-gray-500">{res.tokensUsed}</td>
+                                    <td className="py-3 text-right font-mono text-gray-500">${res.estimatedCost.toFixed(6)}</td>
+                                    <td className="py-3 text-center">
+                                      {res.selectedModel !== "fast" ? (
+                                        <span className="text-amber-600 dark:text-amber-500">●</span>
+                                      ) : (
+                                        <span className="text-gray-200 dark:text-gray-800">○</span>
+                                      )}
+                                    </td>
+                                    <td className={`py-3 text-right font-mono ${delta > 0 ? "text-amber-600/70" : "text-gray-400"}`}>
+                                      {delta > 0 ? `+$${delta.toFixed(6)}` : "0"}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                          {comparisonResults.map((res) => (
+                            <div key={res.strategy} className="flex flex-col space-y-2">
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{res.strategy}</p>
+                              <div className="flex-1 p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white/30 dark:bg-gray-900/30 min-h-[120px] max-h-[200px] overflow-y-auto">
+                                <ul className="space-y-1.5 text-[10px] font-mono text-gray-500 dark:text-gray-400 leading-tight">
+                                  {res.reasoning.map((item, idx) => (
+                                    <li key={idx}>• {item}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 
