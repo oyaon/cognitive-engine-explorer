@@ -195,9 +195,9 @@ export default function ArchitecturePage() {
   const [executionResult, setExecutionResult] = useState<{
     response: string;
     metadata: {
-      selectedModel: "fast" | "balanced";
-      estimatedCost: number;
-      tokensUsed: number;
+      policyDecision: "fast" | "balanced";
+      projectedCost: number;
+      tokenEstimate: number;
       retrievalUsed: boolean;
       reasoning: string[];
     };
@@ -246,9 +246,9 @@ export default function ArchitecturePage() {
           const record: ExecutionRecord = {
             id: crypto.randomUUID(),
             message: inputMessage,
-            selectedModel: data.metadata.selectedModel,
-            tokensUsed: data.metadata.tokensUsed,
-            estimatedCost: data.metadata.estimatedCost,
+            selectedModel: data.metadata.policyDecision,
+            tokensUsed: data.metadata.tokenEstimate,
+            estimatedCost: data.metadata.projectedCost,
             retrievalUsed: data.metadata.retrievalUsed,
             timestamp: Date.now(),
           };
@@ -312,7 +312,7 @@ export default function ArchitecturePage() {
                   </p>
                   {layer.id === "execution" && executionResult && (
                     <p className="text-xs text-gray-400 mt-2">
-                      Active Tier: {executionResult.metadata.selectedModel}
+                      Active Tier: {executionResult.metadata.policyDecision}
                     </p>
                   )}
 
@@ -524,8 +524,8 @@ export default function ArchitecturePage() {
               {comparisonResults && (
                 <div className="pt-6 space-y-6">
                   {(() => {
-                    const lowestCost = Math.min(...comparisonResults.map(r => r.estimatedCost));
-                    const models = new Set(comparisonResults.map(r => r.selectedModel));
+                    const lowestCost = Math.min(...comparisonResults.map(r => r.projectedCost));
+                    const models = new Set(comparisonResults.map(r => r.policyDecision));
                     const hasDivergence = models.size > 1;
 
                     return (
@@ -550,22 +550,22 @@ export default function ArchitecturePage() {
                             </thead>
                             <tbody className="divide-y divide-gray-50 dark:divide-gray-900">
                               {comparisonResults.map((res) => {
-                                const delta = res.estimatedCost - lowestCost;
+                                const delta = res.projectedCost - lowestCost;
                                 return (
                                   <tr key={res.strategy}>
                                     <td className="py-3 font-medium text-zinc-900 dark:text-zinc-100 capitalize">{res.strategy}</td>
                                     <td className="py-3">
-                                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${res.selectedModel === "fast"
+                                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${res.policyDecision === "fast"
                                         ? "bg-gray-100 dark:bg-gray-800 text-gray-500"
                                         : "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
                                         }`}>
-                                        {res.selectedModel}
+                                        {res.policyDecision}
                                       </span>
                                     </td>
-                                    <td className="py-3 text-right font-mono text-gray-500">{res.tokensUsed}</td>
-                                    <td className="py-3 text-right font-mono text-gray-500">${res.estimatedCost.toFixed(6)}</td>
+                                    <td className="py-3 text-right font-mono text-gray-500">{res.tokenEstimate}</td>
+                                    <td className="py-3 text-right font-mono text-gray-500">${res.projectedCost.toFixed(6)}</td>
                                     <td className="py-3 text-center">
-                                      {res.selectedModel !== "fast" ? (
+                                      {res.policyDecision !== "fast" ? (
                                         <span className="text-amber-600 dark:text-amber-500">●</span>
                                       ) : (
                                         <span className="text-gray-200 dark:text-gray-800">○</span>
@@ -606,17 +606,17 @@ export default function ArchitecturePage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50">
                       <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Model</p>
-                      <p className="text-xs font-mono text-gray-600 dark:text-gray-300 capitalize">{executionResult.metadata.selectedModel}</p>
+                      <p className="text-xs font-mono text-gray-600 dark:text-gray-300 capitalize">{executionResult.metadata.policyDecision}</p>
                     </div>
                     <div className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50">
                       <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Cost</p>
                       <p className="text-xs font-mono text-gray-600 dark:text-gray-300">
-                        ${executionResult.metadata.estimatedCost.toFixed(6)}
+                        ${executionResult.metadata.projectedCost.toFixed(6)}
                       </p>
                     </div>
                     <div className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50">
                       <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Tokens</p>
-                      <p className="text-xs font-mono text-gray-600 dark:text-gray-300">{executionResult.metadata.tokensUsed}</p>
+                      <p className="text-xs font-mono text-gray-600 dark:text-gray-300">{executionResult.metadata.tokenEstimate}</p>
                     </div>
                     <div className="p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50">
                       <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Retrieval</p>
