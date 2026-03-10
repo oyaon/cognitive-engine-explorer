@@ -1,5 +1,6 @@
 import { runSystem } from "@/lib/system/runSystem"
 import { comparePolicies } from "@/lib/system/comparePolicies"
+import { deriveDecisionTopology } from "@/lib/system/topologyDerivationEngine"
 import { SystemInput, PolicyStrategy } from "@/lib/system/types"
 
 /**
@@ -43,7 +44,11 @@ export async function POST(req: Request) {
     // Comparison Mode
     if (compare === true) {
         const comparisons = comparePolicies(input, validStrategies)
-        return Response.json({ comparisons }, { status: 200 })
+
+        // Derive full topology across complexity spectrum
+        const topology = deriveDecisionTopology({ budgetLimit: input.budgetLimit })
+
+        return Response.json({ comparisons, topology }, { status: 200 })
     }
 
     // Single Logic Execution (Backward Compatible)
