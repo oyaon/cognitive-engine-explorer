@@ -19,8 +19,7 @@ export const DecisionTrace = ({ reasoning = [], finalModel }: DecisionTraceProps
             <div className="space-y-2 font-mono text-[11px] text-slate-400 h-48 overflow-y-auto custom-scrollbar pr-1">
                 {isEmpty ? (
                     <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 text-sm space-y-1">
-                        <p>No execution data yet.</p>
-                        <p>Run a simulation to generate results.</p>
+                        <p>No execution data yet. Run a simulation.</p>
                     </div>
                 ) : (
                     <>

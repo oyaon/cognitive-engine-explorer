@@ -1,84 +1,108 @@
 # Cognitive Engine Explorer
 
-The project functions as a deterministic policy arbitration engine and constraint-aware resolution system. It implements a boundary-derivable decision framework, ensuring mathematically predictable operations decoupled from external variance. Functionality is verified entirely by a CI-enforced invariant model.
+Deterministic policy arbitration and constraint-aware model routing engine.
 
-## Core Architectural Properties
+Live Demo:
+https://cognitive-engine-explorer.vercel.app
 
-- Determinism: Guaranteed synchronous resolution with no async execution or randomness.
-- Escalation Monotonicity: Model tier progression is strictly monotonic with increasing complexity.
-- Constraint Transition Coherence: State changes under budget boundaries resolve predictably.
-- Boundary Derivation Precision: Exact identification of behavioral thresholds and collapse complexities.
-- Invariant Enforcement via CI: Mathematical validation of constraints blocks structural drift.
-- Strict Domain Isolation: Pure execution environments decoupled from interface artifacts.
+![Dashboard](docs/dashboard-preview.png)
 
-## Architecture Overview
+## System Pipeline
+The resolution pipeline operates through sequentially isolated stages to maintain architectural boundaries:
 
-The resolution pipeline operates under strict separation of concerns, executing through the following sequentially isolated stages:
+1.  **Input Analysis**: Processes message complexity and configuration parameters.
+2.  **Policy Engine**: Dictates a `policyDecision` (e.g., `fast`, `balanced`, `precise`) based on complexity, producing initial cost and token estimates.
+3.  **Constraint Engine**: Processes the policy decision against the `budgetLimit` to determine the `resolvedModel` and `constraintState`.
+4.  **Comparison Engine**: Executes multi-strategy analysis to determine how alternative policies would have performed.
+5.  **Topology Engine**: Derives decision boundaries, escalation thresholds, and divergence points.
+6.  **Invariant Validation**: A verification layer that ensures the current state adheres to defined system guarantees.
 
-```text
-SystemInput
-  → policyEngine (policyDecision)
-  → constraintEngine (resolvedModel, constraintState)
-  → comparePolicies (multi-strategy analysis)
-  → boundaryAnalysisEngine
-  → boundaryDerivationEngine
-  → invariantValidationEngine (audit layer)
-```
+## Core Features
+- **Escalation Monotonicity**: Model tier progression is strictly monotonic relative to increasing input complexity.
+- **Constraint Transition Coherence**: State transitions under budget boundaries resolve according to deterministic logic.
+- **Boundary Derivation**: Exact identification of behavioral thresholds and model "collapse" complexities.
+- **Multi-Policy Strategy Comparison**: Live visualization of outcomes across different arbitration strategies.
+- **Decision Visibility**: Full traceability from raw input through policy selection to final constraint-aware resolution.
 
-The system segregates policy evaluation from constraint processing. The policy engine dictates cost paths without considering budget parameters, producing a `preConstraintModel`, `projectedCost`, and `tokenEstimate`. The constraint engine acts subsequently on those outputs to establish the `resolvedModel`, `constraintState`, `budgetDeficit`, and `budgetStress`. The boundary engines then run analysis to determine the `escalationThreshold`, `divergencePoint`, and `collapseComplexity`.
+## Deterministic Guarantees
+Determinism is verified through a dedicated audit layer located in `lib/system/_audit_/policyAudit.ts`. This layer ensures:
+- **Zero Variance**: Identical inputs yield byte-identical outputs across all runs.
+- **Synchronicity**: No asynchronous operations or external entropy (e.g., random, time) in the core resolution logic.
+- **Invariant Enforcement**: Strict CI checks validate mathematical constraints and block architectural drift.
 
-## Deterministic Audit Enforcement
-
-The system employs `policyAudit.ts` as a strict verification layer. Integrated directly into CI, this script executes a sequence of checks testing escalation properties and boundary resolution. It is designed to hard-fail on invariant violations via exit-code enforcement. This mandates high determinism and enforces a strict deterministic output discipline, proven by byte-identical verification across runs. A successful run will strictly output a `FINAL STATUS: PASS`.
-
+Running the audit:
 ```bash
 npx tsx lib/system/_audit_/policyAudit.ts
 ```
 
-## API Contract
+## Example Execution
+The system exposes a strictly typed API contract. A typical request-response cycle:
 
-The system exposes the following API contract:
-
+**Request** (`POST /api/run`):
 ```json
 {
-  "message": string,
-  "complexity": number,
-  "retrievalEnabled": boolean,
-  "strategy": optional,
-  "compare": optional,
-  "budgetLimit": optional
+  "message": "analyze system state",
+  "complexity": 0.65,
+  "budgetLimit": 1.50,
+  "retrievalEnabled": true,
+  "strategy": "costAware"
 }
 ```
 
-## Formal Structural Guarantees
-
-See: [docs/invariant-guarantees.md](docs/invariant-guarantees.md)
-
-
-## Usage
-
-**Installation**
-```bash
-npm install
+**Response**:
+```json
+{
+  "policyDecision": "balanced",
+  "resolvedModel": "balanced",
+  "constraintState": "compliant",
+  "projectedCost": 0.00045,
+  "tokenEstimate": 150,
+  "reasoning": [
+    "Input complexity 0.65 exceeds fast threshold",
+    "CostAware strategy favors balanced tier",
+    "Projected cost $0.00045 within budget $1.50",
+    "Final model selected: balanced"
+  ]
+}
 ```
 
-**Run Deterministic Audit**
-```bash
-npx tsx lib/system/_audit_/policyAudit.ts
+## Architecture
+The architecture is structured into strictly isolated layers:
+- **Interface Layer**: React/Next.js dashboard for visualization and simulation control.
+- **Orchestration Layer**: API routes (`/api/run`) managing the communication between UI and System logic.
+- **Domain Engine**: Pure deterministic logic (`lib/system`) for policy and constraint resolution.
+- **System Kernel**: Core utilities for cost calculation, type definitions, and invariant validation.
+
+## Project Structure
+```text
+├── app/
+│   ├── api/run/         # API Endpoint (Contract Layer)
+│   ├── architecture/    # Explorer Dashboard
+│   └── components/      # UI Layer (Strictly isolated from lib/system)
+├── lib/system/
+│   ├── _audit_/         # Deterministic Verification (Audit Layer)
+│   ├── policyEngine.ts  # Strategy Arbitration
+│   ├── constraintEngine.ts # Budget Enforcement
+│   └── topologyDerivationEngine.ts # Boundary Analysis
+└── public/              # Static Assets
 ```
 
-**Development Server**
-```bash
-npm run dev
-```
+## Development Setup
+**Prerequisites**: Node.js 18+
 
-## System Rationale
+1.  **Installation**
+    ```bash
+    npm install
+    ```
 
-The system models deterministic arbitration under constraints. It formalizes decision boundaries. It enforces invariants programmatically.
+2.  **Start Development Server**
+    ```bash
+    npm run dev
+    ```
 
-## Roadmap
+3.  **Run Production Build**
+    ```bash
+    npm run build
+    npm run start
+    ```
 
-- Visualization layer
-- Policy expansion
-- Extended invariant modeling
-- Economic modeling refinement

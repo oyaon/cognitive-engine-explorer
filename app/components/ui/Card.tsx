@@ -13,7 +13,7 @@ export const Card = ({ children, className = "" }: CardProps) => {
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur-sm p-6 shadow-sm ${className}`}
+            className={`rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-sm ${className}`}
         >
             {children}
         </motion.div>

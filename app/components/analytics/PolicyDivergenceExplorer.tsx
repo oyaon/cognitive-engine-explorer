@@ -52,8 +52,7 @@ export const PolicyDivergenceExplorer = ({ data }: PolicyDivergenceExplorerProps
     if (!data) {
         return (
             <Card className="flex flex-col items-center justify-center h-[400px] border-slate-800 bg-slate-950/20 p-6 text-center text-slate-400 text-sm">
-                <p>No execution data yet.</p>
-                <p>Run a simulation to generate results.</p>
+                <p>No execution data yet. Run a simulation.</p>
             </Card>
         );
     }
@@ -78,7 +77,7 @@ export const PolicyDivergenceExplorer = ({ data }: PolicyDivergenceExplorerProps
                         {points.map((p, idx) => (
                             <tr
                                 key={idx}
-                                className={`group transition-colors ${p.hasDivergence ? 'bg-amber-500/[0.03] border-l-2 border-l-amber-500/50' : 'hover:bg-white/[0.01]'}`}
+                                className={`group transition-colors ${p.hasDivergence ? 'bg-amber-500/[0.03] border-l-2 border-l-amber-500/50' : 'hover:bg-slate-800'}`}
                             >
                                 <td className="px-4 py-2 border-r border-slate-800/10">
                                     <span className="text-[10px] font-mono font-bold text-slate-400">{p.complexity.toFixed(1)}</span>

@@ -142,8 +142,7 @@ export const DecisionSurface3D = memo(({ data }: DecisionSurface3DProps) => {
     if (!data) {
         return (
             <Card className="flex flex-col items-center justify-center h-[400px] border-slate-800 bg-slate-950/20 p-6 text-center text-slate-400 text-sm">
-                <p>No execution data yet.</p>
-                <p>Run a simulation to generate results.</p>
+                <p>No execution data yet. Run a simulation.</p>
             </Card>
         );
     }

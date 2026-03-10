@@ -71,8 +71,7 @@ export const DecisionTopologyChart = memo(({ data }: DecisionTopologyChartProps)
     if (!data) {
         return (
             <Card className="h-64 flex flex-col items-center justify-center border-slate-800 bg-slate-950/20 p-6 text-center text-slate-400 text-sm">
-                <p>No execution data yet.</p>
-                <p>Run a simulation to generate results.</p>
+                <p>No execution data yet. Run a simulation.</p>
             </Card>
         );
     }
@@ -165,7 +164,7 @@ export const DecisionTopologyChart = memo(({ data }: DecisionTopologyChartProps)
                 </ResponsiveContainer>
             </div>
 
-            <div className="px-6 py-2 bg-black/40 border-t border-slate-800/50 flex justify-between items-center">
+            <div className="px-6 py-2 bg-slate-950/40 border-t border-slate-800/50 flex justify-between items-center">
                 <span className="text-[9px] text-slate-400 font-mono uppercase tracking-tighter">
                     {data.divergencePoint !== undefined ? `DIVERGENCE_AT: ${data.divergencePoint}` : 'STABLE_TOPOLOGY'}
                 </span>

@@ -32,8 +32,7 @@ export const ExecutionHistory = memo(({ history }: ExecutionHistoryProps) => {
             <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
                 {history.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center p-6 text-center text-slate-400 text-sm">
-                        <p>No execution data yet.</p>
-                        <p>Run a simulation to generate results.</p>
+                        <p>No execution data yet. Run a simulation.</p>
                     </div>
                 ) : (
                     history.map((entry) => (
@@ -46,7 +45,7 @@ export const ExecutionHistory = memo(({ history }: ExecutionHistoryProps) => {
                                         {entry.model}
                                     </span>
                                 </div>
-                                <span className="text-[9px] font-mono text-slate-400">{entry.timestamp}</span>
+                                <span className="text-[9px] font-mono tabular-nums text-slate-400">{entry.timestamp}</span>
                             </div>
 
                             <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-800/50">

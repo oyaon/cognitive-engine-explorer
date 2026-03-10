@@ -19,8 +19,7 @@ export const ExecutionMetadata = ({ data }: ExecutionMetadataProps) => {
             <Card>
                 <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Metadata Context</h4>
                 <div className="p-6 text-center text-slate-400 text-sm">
-                    <p>No execution data yet.</p>
-                    <p>Run a simulation to generate results.</p>
+                    <p>No execution data yet. Run a simulation.</p>
                 </div>
             </Card>
         );

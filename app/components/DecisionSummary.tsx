@@ -14,8 +14,7 @@ interface DecisionSummaryProps {
 export const DecisionSummary = ({ data }: DecisionSummaryProps) => {
     if (!data) return (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center text-slate-400 text-sm space-y-1">
-            <p>No execution data yet.</p>
-            <p>Run a simulation to generate results.</p>
+            <p>No execution data yet. Run a simulation.</p>
         </div>
     );
 

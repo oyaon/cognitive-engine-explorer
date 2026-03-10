@@ -46,7 +46,7 @@ export const SystemIntegrityPanel = () => {
 
             <div className="mt-6 pt-4 border-t border-slate-800">
                 <div className="flex justify-between items-center text-[9px] text-slate-400 font-mono">
-                    <span>KERNEL_V.0.1.0</span>
+                    <span className="font-mono tabular-nums">KERNEL_V.0.1.0</span>
                     <span className="uppercase tracking-tighter">Verified_Hardware_Attestation</span>
                 </div>
             </div>

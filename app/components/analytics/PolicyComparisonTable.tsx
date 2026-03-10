@@ -70,7 +70,7 @@ export const PolicyComparisonTable = memo(({ comparisonResults }: PolicyComparis
                     </thead>
                     <tbody className="divide-y divide-slate-800/30">
                         {sortedResults.map((result) => (
-                            <tr key={result.strategy} className="group hover:bg-white/[0.02] transition-colors">
+                            <tr key={result.strategy} className="group hover:bg-slate-800 transition-colors">
                                 <td className="px-6 py-4">
                                     <div className="text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition-colors">
                                         {formatStrategy(result.strategy)}
@@ -108,8 +108,7 @@ export const PolicyComparisonTable = memo(({ comparisonResults }: PolicyComparis
             </div>
             {sortedResults.length === 0 && (
                 <div className="p-6 text-center text-slate-400 text-sm">
-                    <p>No execution data yet.</p>
-                    <p>Run a simulation to generate results.</p>
+                    <p>No execution data yet. Run a simulation.</p>
                 </div>
             )}
         </Card>
