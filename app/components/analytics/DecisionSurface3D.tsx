@@ -26,6 +26,7 @@ export const DecisionSurface3D = memo(({ data }: DecisionSurface3DProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
+        if (!data) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
 
@@ -138,21 +139,30 @@ export const DecisionSurface3D = memo(({ data }: DecisionSurface3DProps) => {
         render();
     }, [data]);
 
+    if (!data) {
+        return (
+            <Card className="flex flex-col items-center justify-center h-[400px] border-slate-800 bg-slate-950/20 p-6 text-center text-slate-400 text-sm">
+                <p>No execution data yet.</p>
+                <p>Run a simulation to generate results.</p>
+            </Card>
+        );
+    }
+
     return (
         <Card className="flex flex-col border-slate-800 bg-slate-950/40 p-0 overflow-hidden h-[400px]">
             <div className="px-6 py-4 border-b border-slate-800/50 bg-slate-900/30 flex justify-between items-center">
-                <div className="flex flex-col">
-                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Decision Landscape 3D</h3>
-                    <span className="text-[8px] text-slate-600 font-mono mt-0.5">TOPOLOGY_ISOMETRIC_RENDER</span>
+                <div className="flex flex-col" title="Visualizes performance boundaries across complexity and budget.">
+                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Decision Landscape 3D</h3>
+                    <span className="text-[8px] text-slate-400 font-mono mt-0.5">TOPOLOGY_ISOMETRIC_RENDER</span>
                 </div>
                 <div className="flex gap-4">
                     <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-sm bg-sky-400/50 border border-sky-400" />
-                        <span className="text-[9px] text-slate-500 uppercase font-mono">Fast</span>
+                        <span className="text-[9px] text-slate-400 uppercase font-mono">Fast</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-sm bg-indigo-500/50 border border-indigo-500" />
-                        <span className="text-[9px] text-slate-500 uppercase font-mono">Balanced</span>
+                        <span className="text-[9px] text-slate-400 uppercase font-mono">Balanced</span>
                     </div>
                 </div>
             </div>
@@ -165,7 +175,7 @@ export const DecisionSurface3D = memo(({ data }: DecisionSurface3DProps) => {
                 />
 
                 {/* Overlay Metadata */}
-                <div className="absolute bottom-4 left-6 flex flex-col gap-1 text-[8px] font-mono text-slate-600 uppercase">
+                <div className="absolute bottom-4 left-6 flex flex-col gap-1 text-[8px] font-mono text-slate-400 uppercase">
                     <span>Z: Model_Resolution</span>
                     <span>X: Input_Complexity</span>
                     <span>Y: Budget_Constraint</span>

@@ -12,6 +12,8 @@ import { RuntimeInspector } from "@/app/components/runtime/RuntimeInspector";
 import { SimulationControls } from "@/app/components/runtime/SimulationControls";
 import { SimulationStatus } from "@/app/components/runtime/SimulationStatus";
 
+import { DecisionFlow } from "@/app/components/DecisionFlow";
+import { DecisionSummary } from "@/app/components/DecisionSummary";
 import { DecisionTrace } from "@/app/components/execution/DecisionTrace";
 import { ExecutionMetadata } from "@/app/components/execution/ExecutionMetadata";
 import { ExecutionHistory } from "@/app/components/execution/ExecutionHistory";
@@ -32,6 +34,7 @@ interface SystemResult {
     tokenEstimate: number;
     reasoning: string[];
     constraintState?: string;
+    retrievalUsed?: boolean;
   };
   comparisons?: ComparisonResult[];
   topology?: DecisionTopology;
@@ -144,7 +147,7 @@ export default function ArchitecturePage() {
   }, [history.length]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 py-16 px-6 lg:px-12 selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-slate-950 text-slate-200 py-16 px-6 lg:px-12 selection:bg-indigo-500/30">
       {/* Background Effect */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(51,65,85,0.15)_0%,rgba(2,6,23,1)_70%)] pointer-events-none" />
 
@@ -162,38 +165,58 @@ export default function ArchitecturePage() {
           />
         </header>
 
-        {/* Main Two-Column Grid */}
-        <main className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        {/* Main Section Stack */}
+        <main className="space-y-16">
 
-          {/* Left Column: Architecture Stack */}
-          <section className="space-y-6">
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 mb-4 ml-1">System Hierarchy</h3>
-            <ArchitectureStack />
-
-            <Card className="border-slate-800/50 bg-slate-900/20">
-              <p className="text-sm text-slate-400 leading-relaxed font-light">
-                The architecture employs a strictly isolated, layered approach where each tier maintains its own deterministic state and boundary constraints.
-              </p>
-            </Card>
-
-            <div className="pt-6">
-              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 mb-4 ml-1">Historical Logs</h3>
-              <ExecutionHistory history={history} />
+          {/* SYSTEM OVERVIEW */}
+          <section>
+            <h2 className="text-xs tracking-widest text-slate-400 mb-3 uppercase">SYSTEM OVERVIEW</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className="space-y-6">
+                <ArchitectureStack />
+                <Card className="border-slate-800/50 bg-slate-900/20">
+                  <p className="text-sm text-slate-400 leading-relaxed font-light">
+                    The architecture employs a strictly isolated, layered approach where each tier maintains its own deterministic state and boundary constraints.
+                  </p>
+                </Card>
+              </div>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <ConstraintIndicator label="System Lock Integrity" satisfied={true} />
+                  <ConstraintIndicator metadata={executionResult?.metadata} />
+                </div>
+              </div>
             </div>
           </section>
 
-          {/* Right Column: Runtime & Analysis */}
-          <section className="space-y-8">
-            <div className="space-y-6">
-              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 mb-4 ml-1">Live Execution & Control</h3>
-              <RuntimeInspector onResult={handleNewResult} />
-              <div className="mt-6">
+          {/* EXECUTION CONTROLS */}
+          <section>
+            <h2 className="text-xs tracking-widest text-slate-400 mb-3 uppercase">EXECUTION CONTROLS</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className="space-y-6">
+                <RuntimeInspector onResult={handleNewResult} />
+              </div>
+              <div className="space-y-6">
                 <SimulationControls onUpdate={handleSimulation} />
               </div>
             </div>
+          </section>
 
-            {/* Below Runtime Components */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* DECISION ANALYSIS */}
+          <section>
+            <h2 className="text-xs tracking-widest text-slate-400 mb-3 uppercase">DECISION ANALYSIS</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className="space-y-6">
+                <DecisionSummary data={executionResult?.metadata ? {
+                  resolvedModel: executionResult.metadata.resolvedModel,
+                  policyDecision: executionResult.metadata.policyDecision,
+                  projectedCost: executionResult.metadata.projectedCost,
+                  tokenEstimate: executionResult.metadata.tokenEstimate,
+                  constraintState: executionResult.metadata.constraintState || 'SATISFIED',
+                  retrievalUsed: executionResult.metadata.retrievalUsed || false
+                } : undefined} />
+                <DecisionFlow />
+              </div>
               <div className="space-y-6">
                 <DecisionTrace
                   reasoning={executionResult?.metadata?.reasoning}
@@ -206,23 +229,23 @@ export default function ArchitecturePage() {
                   tokenEstimate: executionResult.metadata.tokenEstimate,
                   constraintState: executionResult.metadata.constraintState || 'SATISFIED'
                 } : undefined} />
-                <DecisionTopologyChart data={executionResult?.topology} />
-                <div className="pt-4">
-                  <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 mb-4 ml-1">Policy Divergence Explorer</h3>
-                  <PolicyDivergenceExplorer data={executionResult?.topology} />
-                </div>
-                <div className="pt-4">
-                  <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 mb-4 ml-1">Decision Surface</h3>
-                  <DecisionSurface3D data={executionResult?.topology} />
-                </div>
               </div>
+            </div>
+          </section>
+
+          {/* SYSTEM ANALYTICS */}
+          <section>
+            <h2 className="text-xs tracking-widest text-slate-400 mb-3 uppercase">SYSTEM ANALYTICS</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               <div className="space-y-6">
                 <PolicyComparisonTable comparisonResults={executionResult?.comparisons || []} />
-                <div className="space-y-2">
-                  <ConstraintIndicator label="System Lock Integrity" satisfied={true} />
-                  <ConstraintIndicator metadata={executionResult?.metadata} />
-                </div>
+                <ExecutionHistory history={history} />
                 <SystemIntegrityPanel />
+              </div>
+              <div className="space-y-6">
+                <DecisionTopologyChart data={executionResult?.topology} />
+                <PolicyDivergenceExplorer data={executionResult?.topology} />
+                <DecisionSurface3D data={executionResult?.topology} />
               </div>
             </div>
           </section>

@@ -14,14 +14,11 @@ interface RuntimeInspectorProps {
 }
 
 export const RuntimeInspector = ({ onResult }: RuntimeInspectorProps) => {
-    // Input State
     const [message, setMessage] = useState('');
     const [complexity, setComplexity] = useState(0.5);
     const [retrievalEnabled, setRetrievalEnabled] = useState(true);
     const [strategy, setStrategy] = useState('threshold');
     const [compareMode, setCompareMode] = useState(false);
-
-    // Execution State
     const [isRunning, setIsRunning] = useState(false);
     const [logs, setLogs] = useState<string[]>([
         '[02:13:55] KERNEL_IDLE: Awaiting cognitive sequence...',
@@ -63,7 +60,7 @@ export const RuntimeInspector = ({ onResult }: RuntimeInspectorProps) => {
             } else {
                 addLog(`SEQUENCE_FAILED: ${data.error || 'UNKNOWN_ERROR'}`);
             }
-        } catch (err) {
+        } catch {
             addLog(`NETWORK_ERROR: Communication link severed.`);
         } finally {
             setIsRunning(false);
@@ -72,43 +69,48 @@ export const RuntimeInspector = ({ onResult }: RuntimeInspectorProps) => {
 
     return (
         <div className="space-y-6">
-            {/* Log Monitor Section */}
-            <Card className="font-mono text-[11px] border-slate-800 bg-slate-950/80">
-                <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
-                    <span className="text-slate-500 uppercase tracking-tighter">System Log Monitor</span>
-                    <span className={isRunning ? "text-amber-500 animate-pulse" : "text-emerald-500"}>
+            {/* Log Monitor */}
+            <Card className="font-mono text-[11px] border-slate-800 bg-slate-950">
+                <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                    <span className="text-xs uppercase tracking-widest text-slate-400">System Log Monitor</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${isRunning ? 'text-amber-500 animate-pulse' : 'text-emerald-500'}`}>
                         {isRunning ? 'EXECUTING' : 'IDLE'}
                     </span>
                 </div>
-                <div className="space-y-1 h-32 overflow-y-auto custom-scrollbar">
+                <div className="space-y-1 h-32 overflow-y-auto custom-scrollbar pr-1">
                     {logs.map((log, i) => (
-                        <div key={i} className={log.includes('FAILED') || log.includes('ERROR') ? 'text-red-400' : 'text-slate-400'}>
+                        <div key={i} className={`leading-relaxed ${log.includes('FAILED') || log.includes('ERROR') ? 'text-rose-400' : 'text-slate-400'}`}>
                             {log}
                         </div>
                     ))}
-                    {isRunning && <div className="text-white animate-pulse">{">_ PROCESSING_CORE_LOGIC..."}</div>}
+                    {isRunning && <div className="text-slate-200 animate-pulse">{"> _ PROCESSING_CORE_LOGIC..."}</div>}
                 </div>
             </Card>
 
-            {/* Control Panel Section */}
-            <Card className="space-y-6 border-slate-800 bg-slate-900/40">
-                <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Execution Controls</h4>
+            {/* Control Panel */}
+            <Card className="space-y-6 border-slate-800 bg-slate-900">
+                <div className="space-y-5">
+                    <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Execution Controls</h4>
                         <CompareModeToggle active={compareMode} onToggle={setCompareMode} />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <StrategySelector
-                            selected={strategy}
-                            onSelect={setStrategy}
-                            disabled={compareMode || isRunning}
-                        />
-                        <RetrievalToggle
-                            enabled={retrievalEnabled}
-                            onToggle={setRetrievalEnabled}
-                            disabled={isRunning}
-                        />
+                        <div className="space-y-2">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest" title="Determines arbitration behavior and model resolution.">Policy Strategy</span>
+                            <StrategySelector
+                                selected={strategy}
+                                onSelect={setStrategy}
+                                disabled={compareMode || isRunning}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <RetrievalToggle
+                                enabled={retrievalEnabled}
+                                onToggle={setRetrievalEnabled}
+                                disabled={isRunning}
+                            />
+                        </div>
                     </div>
 
                     <ComplexitySlider

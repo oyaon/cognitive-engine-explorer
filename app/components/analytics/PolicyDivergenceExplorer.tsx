@@ -51,9 +51,9 @@ export const PolicyDivergenceExplorer = ({ data }: PolicyDivergenceExplorerProps
 
     if (!data) {
         return (
-            <Card className="flex flex-col items-center justify-center p-8 border-slate-800 bg-slate-950/20">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">Divergence Engine Standby</span>
-                <p className="text-[10px] text-slate-700 italic">Historical data required for divergence analysis.</p>
+            <Card className="flex flex-col items-center justify-center h-[400px] border-slate-800 bg-slate-950/20 p-6 text-center text-slate-400 text-sm">
+                <p>No execution data yet.</p>
+                <p>Run a simulation to generate results.</p>
             </Card>
         );
     }
@@ -61,17 +61,17 @@ export const PolicyDivergenceExplorer = ({ data }: PolicyDivergenceExplorerProps
     return (
         <Card className="p-0 overflow-hidden border-slate-800/50">
             <div className="px-6 py-4 border-b border-slate-800/50 bg-slate-900/30">
-                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Strategy Divergence Mapping</h3>
+                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Strategy Divergence Mapping</h3>
             </div>
             <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-950/50">
-                            <th className="px-4 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50">Complexity</th>
-                            <th className="px-4 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50">Threshold</th>
-                            <th className="px-4 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50">Cost Aware</th>
-                            <th className="px-4 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50">Retrieval</th>
-                            <th className="px-4 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50 text-right">Status</th>
+                            <th className="px-4 py-3 text-[9px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800/50">Complexity</th>
+                            <th className="px-4 py-3 text-[9px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800/50">Threshold</th>
+                            <th className="px-4 py-3 text-[9px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800/50">Cost Aware</th>
+                            <th className="px-4 py-3 text-[9px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800/50">Retrieval</th>
+                            <th className="px-4 py-3 text-[9px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800/50 text-right">Status</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/20">
@@ -109,7 +109,7 @@ export const PolicyDivergenceExplorer = ({ data }: PolicyDivergenceExplorerProps
                     </tbody>
                 </table>
             </div>
-            <div className="px-6 py-3 border-t border-slate-800/30 bg-slate-900/10 flex justify-between items-center text-[9px] font-mono text-slate-600">
+            <div className="px-6 py-3 border-t border-slate-800/30 bg-slate-900/10 flex justify-between items-center text-[9px] font-mono text-slate-400">
                 <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500/50" />
                     <span className="uppercase tracking-tighter">Divergence Highlighted</span>

@@ -52,9 +52,9 @@ export const ConstraintIndicator = ({ label, satisfied, metadata }: ConstraintIn
         return (
             <div className="flex flex-col gap-4 p-5 rounded-xl border border-slate-800/50 bg-slate-900/30 backdrop-blur-sm shadow-xl">
                 <div className="flex justify-between items-center">
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.15em] mb-0.5">Constraint Engine</span>
-                        <span className="text-xs font-semibold text-slate-300">Budget Pressure Analysis</span>
+                    <div className="flex flex-col" title="Ensures execution stays within token budget.">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Constraint Engine</span>
+                        <span className="text-xs font-semibold text-slate-400">Budget Pressure Analysis</span>
                     </div>
                     <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-widest ${statusColor}`}>
                         {constraintState || 'Compliant'}
@@ -63,8 +63,8 @@ export const ConstraintIndicator = ({ label, satisfied, metadata }: ConstraintIn
 
                 <div className="space-y-2">
                     <div className="flex justify-between items-end px-0.5">
-                        <span className="text-[9px] font-mono text-slate-600 uppercase">Load_Coefficient</span>
-                        <span className={`text-xs font-mono font-bold ${isExceeded ? 'text-rose-400' : 'text-slate-200'}`}>
+                        <span className="text-[9px] font-mono text-slate-400 uppercase">Load_Coefficient</span>
+                        <span className={`text-xs font-mono tabular-nums font-bold ${isExceeded ? 'text-rose-400' : 'text-slate-200'}`}>
                             {budgetLimit !== undefined ? `${(stress * 100).toFixed(1)}%` : '0.0%'}
                         </span>
                     </div>
@@ -78,12 +78,12 @@ export const ConstraintIndicator = ({ label, satisfied, metadata }: ConstraintIn
 
                 <div className="grid grid-cols-2 gap-4 mt-1">
                     <div className="flex flex-col gap-1 border-l border-slate-800 pl-3">
-                        <span className="text-[9px] text-slate-600 uppercase font-mono tracking-tighter">Projected_Cost</span>
-                        <span className="text-xs text-slate-300 font-mono font-medium">${projectedCost.toFixed(6)}</span>
+                        <span className="text-[9px] text-slate-400 uppercase font-mono tracking-tighter">Projected_Cost</span>
+                        <span className="text-xs text-slate-400 font-mono tabular-nums font-medium">${projectedCost.toFixed(6)}</span>
                     </div>
                     <div className="flex flex-col gap-1 border-l border-slate-800 pl-3">
-                        <span className="text-[9px] text-slate-600 uppercase font-mono tracking-tighter">Budget_Ceiling</span>
-                        <span className="text-xs text-slate-400 font-mono">
+                        <span className="text-[9px] text-slate-400 uppercase font-mono tracking-tighter">Budget_Ceiling</span>
+                        <span className="text-xs text-slate-400 font-mono tabular-nums">
                             {budgetLimit !== undefined ? `$${budgetLimit.toFixed(6)}` : 'UNSET'}
                         </span>
                     </div>
@@ -94,8 +94,8 @@ export const ConstraintIndicator = ({ label, satisfied, metadata }: ConstraintIn
 
     // Default: Standard status indicator
     return (
-        <div className="flex items-center justify-between p-3 rounded-lg border border-slate-800 bg-slate-950/20 group hover:border-slate-700/50 transition-colors">
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-tight group-hover:text-slate-400 transition-colors">{label}</span>
+        <div className="flex items-center justify-between p-3 rounded-lg border border-slate-800 bg-slate-950/20 group hover:border-slate-800/50 transition-colors">
+            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-tight group-hover:text-slate-400 transition-colors">{label}</span>
             <div className={`w-2 h-2 rounded-full ${satisfied ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.3)]'} transition-shadow`} />
         </div>
     );

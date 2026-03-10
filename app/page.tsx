@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
  */
 export default function Home() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 font-sans selection:bg-slate-800 flex flex-col items-center justify-center px-6 overflow-hidden">
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-slate-900 flex flex-col items-center justify-center px-6 overflow-hidden">
       {/* Background radial gradient for depth */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(15,23,42,1)_0%,rgba(2,6,23,1)_100%)] pointer-events-none" />
 
@@ -30,10 +30,10 @@ export default function Home() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-8"
+          className="text-5xl md:text-7xl font-bold tracking-tight text-slate-200 mb-8"
         >
           Explore the Architecture <br />
-          <span className="text-slate-500">of Intelligence.</span>
+          <span className="text-slate-400">of Intelligence.</span>
         </motion.h1>
 
         {/* Sub-headline */}
@@ -64,7 +64,7 @@ export default function Home() {
 
           <a
             href="https://github.com/oyaon/cognitive-engine-explorer"
-            className="h-14 w-full sm:w-auto px-10 flex items-center justify-center rounded-xl border border-slate-800 bg-slate-950 text-slate-300 font-medium transition-colors hover:bg-slate-900 hover:text-white"
+            className="h-14 w-full sm:w-auto px-10 flex items-center justify-center rounded-xl border border-slate-800 bg-slate-950 text-slate-400 font-medium transition-colors hover:bg-slate-900 hover:text-slate-200"
           >
             GitHub Repository
           </a>
@@ -75,7 +75,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 0.8 }}
-          className="mt-24 pt-12 border-t border-slate-900 flex flex-wrap justify-between gap-6 text-[10px] uppercase tracking-widest text-slate-600 font-mono"
+          className="mt-24 pt-12 border-t border-slate-800 flex flex-wrap justify-between gap-6 text-[10px] uppercase tracking-widest text-slate-400 font-mono"
         >
           <span>{"// STACK: NEXT.JS • REACT • FRAMER-MOTION"}</span>
           <span>{"// STATUS: OPERATIONAL"}</span>

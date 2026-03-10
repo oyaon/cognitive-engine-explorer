@@ -70,9 +70,9 @@ export const DecisionTopologyChart = memo(({ data }: DecisionTopologyChartProps)
 
     if (!data) {
         return (
-            <Card className="h-64 flex flex-col items-center justify-center border-slate-800 bg-slate-950/20">
-                <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Topology Engine Offline</div>
-                <p className="text-[10px] text-slate-700 italic">Initiate comparison to derive decision boundaries.</p>
+            <Card className="h-64 flex flex-col items-center justify-center border-slate-800 bg-slate-950/20 p-6 text-center text-slate-400 text-sm">
+                <p>No execution data yet.</p>
+                <p>Run a simulation to generate results.</p>
             </Card>
         );
     }
@@ -80,19 +80,19 @@ export const DecisionTopologyChart = memo(({ data }: DecisionTopologyChartProps)
     return (
         <Card className="p-0 overflow-hidden border-slate-800/50">
             <div className="px-6 py-4 border-b border-slate-800/50 bg-slate-900/30 flex justify-between items-center">
-                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Decision Topology Spectrum</h3>
+                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]" title="Maps behavior transition regions in policy execution.">Decision Topology Spectrum</h3>
                 <div className="flex gap-4">
                     <div className="flex items-center gap-1.5">
                         <div className="w-2 h-0.5 bg-sky-400" />
-                        <span className="text-[9px] text-slate-500 uppercase font-mono">Threshold</span>
+                        <span className="text-[9px] text-slate-400 uppercase font-mono">Threshold</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <div className="w-2 h-0.5 bg-indigo-500" />
-                        <span className="text-[9px] text-slate-500 uppercase font-mono">Cost Aware</span>
+                        <span className="text-[9px] text-slate-400 uppercase font-mono">Cost Aware</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <div className="w-2 h-0.5 bg-emerald-500" />
-                        <span className="text-[9px] text-slate-500 uppercase font-mono">Retrieval</span>
+                        <span className="text-[9px] text-slate-400 uppercase font-mono">Retrieval</span>
                     </div>
                 </div>
             </div>
@@ -166,10 +166,10 @@ export const DecisionTopologyChart = memo(({ data }: DecisionTopologyChartProps)
             </div>
 
             <div className="px-6 py-2 bg-black/40 border-t border-slate-800/50 flex justify-between items-center">
-                <span className="text-[9px] text-slate-600 font-mono uppercase tracking-tighter">
+                <span className="text-[9px] text-slate-400 font-mono uppercase tracking-tighter">
                     {data.divergencePoint !== undefined ? `DIVERGENCE_AT: ${data.divergencePoint}` : 'STABLE_TOPOLOGY'}
                 </span>
-                <span className="text-[9px] text-slate-600 font-mono uppercase tracking-tighter">
+                <span className="text-[9px] text-slate-400 font-mono uppercase tracking-tighter">
                     V2_PARTITIONS: {data.regions.length}
                 </span>
             </div>

@@ -17,8 +17,8 @@ export const RunButton = ({ onClick, isLoading, disabled }: RunButtonProps) => {
             onClick={onClick}
             disabled={disabled || isLoading}
             className={`w-full h-12 flex items-center justify-center gap-2 rounded-xl font-bold text-sm tracking-wide transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] ${isLoading || disabled
-                ? 'bg-slate-800 text-slate-500 shadow-none cursor-not-allowed'
-                : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                ? 'bg-slate-900 text-slate-400 shadow-none cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-500 text-slate-200'
                 }`}
         >
             {isLoading ? (
